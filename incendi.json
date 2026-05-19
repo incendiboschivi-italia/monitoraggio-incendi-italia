@@ -1,14 +1,1 @@
-[
-  {
-    "latitude": "41.8902",
-    "longitude": "12.4922",
-    "acq_time": "1200",
-    "instrument": "Test Sat"
-  },
-  {
-    "latitude": "45.4642",
-    "longitude": "9.1900",
-    "acq_time": "1430",
-    "instrument": "Test Sat"
-  }
-]
+[]
