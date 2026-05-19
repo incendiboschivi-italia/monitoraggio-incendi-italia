@@ -1,0 +1,46 @@
+name: Aggiornamento Dati Incendi
+on:
+  schedule:
+    - cron: '0 * * * *' # Gira automaticamente all'inizio di ogni ora
+  workflow_dispatch: # Permette di farlo partire a mano cliccando un bottone
+
+jobs:
+  aggiorna-dati:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Accedi ai file del repository
+        uses: actions/checkout@v3
+
+      - name: Configura Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Scarica dati dalla NASA e convertili
+        env:
+          NASA_KEY: ${{ secrets.NASA_MAP_KEY }}
+        run: |
+          # Scarica il CSV dell'Italia usando la chiave segreta salvata
+          curl -s "https://firms.modaps.eosdis.nasa.gov/api/area/csv/$NASA_KEY/MODIS_NRT/12,35,19,47/1" > dati.csv
+          
+          # Script per trasformare il CSV in JSON per la mappa
+          python -c "
+          import csv, json
+          try:
+              with open('dati.csv', mode='r') as f:
+                  reader = csv.DictReader(f)
+                  righe = list(reader)
+              with open('incendi.json', 'w') as f:
+                  json.dump(righe, f)
+              print('Conversione riuscita!')
+          except Exception as e:
+              print('Errore nella conversione:', e)
+          "
+
+      - name: Salva i dati nel repository
+        run: |
+          git config --global user.name "MappaBot"
+          git config --global user.email "bot@github.com"
+          git add -A
+          git commit -m "Aggiornati dati incendi satellitari" || exit 0
+          git push
