@@ -98,6 +98,16 @@
         };
         legend.addTo(map);
 
+// CONFIGURAZIONE FIREBASE: Sostituisci questo blocco con i tuoi dati reali!
+        const firebaseConfig = {
+          apiKey: "AIzaSyCtpbSPhgWoFIvAjGVsboBayl9oJjzDjy4",
+          authDomain: "monitoraggio-incendi-v1.firebaseapp.com",
+          projectId: "monitoraggio-incendi-v1",
+          storageBucket: "monitoraggio-incendi-v1.firebasestorage.app",
+          messagingSenderId: "806160880982",
+          appId: "1:806160880982:web:fd4747fd0841ad5066f2f7"
+        };
+        
         // Funzione per disegnare i punti sulla mappa
         function disegnaPunti(punti) {
             punti.forEach(ponto => {
