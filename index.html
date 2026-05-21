@@ -271,20 +271,31 @@
                 layerUtenti.clearLayers();
                 querySnapshot.forEach((doc) => {
                     const dati = doc.data();
-                    let stringaDms = dati.dms ? `<b>Coordinate:</b> ${dati.dms}<br>` : '';
-                    let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:130px; border-radius:4px; margin-top:8px;">` : '';
+                    
+                    // Immagine (se presente)
+                    let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
+                    
+                    // Badge di stato (Fedele alla tua immagine originale)
                     let badge = dati.stato === "In attesa di validazione operativa" 
-                        ? `<div style="background:#fff9db; color:#e67e22; padding:5px; border-radius:4px; font-weight:bold; font-size:10px; margin-bottom:8px;">⚠️ IN ATTESA</div>`
-                        : `<div style="background:#ebfbee; color:#2b8a3e; padding:5px; border-radius:4px; font-weight:bold; font-size:10px; margin-bottom:8px;">✅ VALIDATA</div>`;
+                        ? `<div style="background:#fff9db; color:#e67e22; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #ffe066;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>`
+                        : `<div style="background:#ebfbee; color:#2b8a3e; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #8ce99a;">✅ VALIDATA</div>`;
+                    
                     let colore = dati.stato === "In attesa di validazione operativa" ? "#e67e22" : "#fab005";
+                    
+                    // Costruzione dei dettagli operativi completi
+                    let infoDettagliata = "";
+                    if (dati.dms) infoDettagliata += `<span style="font-size:13px; line-height: 1.5;"><b>Coordinate DMS:</b> ${dati.dms}<br>`;
+                    if (dati.combustibile) infoDettagliata += `<b>Vegetazione:</b> ${dati.combustibile}<br>`;
+                    if (dati.latitudine && dati.longitudine) infoDettagliata += `<b>Lat/Lon Decimale:</b> ${dati.latitudine}, ${dati.longitudine}<br>`;
+                    if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`;
+                    infoDettagliata += `<b>Inviato da:</b> ${dati.utente}</span>`;
                     
                     L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
                         radius: 7, fillColor: colore, color: "#fff", weight: 2, fillOpacity: 0.85
-                    }).addTo(layerUtenti).bindPopup(`${badge}${stringaDms}<b>Inviato da:</b> ${dati.utente}${img}`);
+                    }).addTo(layerUtenti).bindPopup(`${badge}${infoDettagliata}${img}`, { minWidth: 260 });
                 });
             });
         }
-
         function comprimiInBase64(file, maxW, maxH, quality) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
