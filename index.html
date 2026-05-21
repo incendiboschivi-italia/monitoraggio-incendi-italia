@@ -54,7 +54,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Definisci i vari tipi di sfondo (Basemaps)
+        // 1. Definizione degli sfondi (Basemaps)
         const mappaScura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
             maxZoom: 20
@@ -70,14 +70,14 @@
             maxZoom: 17
         });
 
-        // 2. Inizializza la mappa assegnando la 'mappaScura' come sfondo predefinito all'apertura
+        // 2. Inizializzazione della mappa con la mappa scura di default
         const map = L.map('map', {
             center: [42.5, 12.5],
             zoom: 6,
             layers: [mappaScura] 
         });
 
-        // 3. Crea il menu a tendina per far scegliere all'utente quale sfondo vedere
+        // 3. Controllo dei livelli (Menu in alto a destra)
         const sfondi = {
             "Mappa Scura (Default)": mappaScura,
             "Vista Satellitare": mappaSatellitare,
@@ -85,7 +85,7 @@
         };
         L.control.layers(sfondi).addTo(map);
 
-        // Aggiungi la legenda in basso a sinistra
+        // Aggiunta della legenda in basso a sinistra
         const legend = L.control({ position: 'bottomleft' });
         legend.onAdd = function () {
             const div = L.DomUtil.create('div', 'info legend');
@@ -98,7 +98,7 @@
         };
         legend.addTo(map);
 
-        // Funzione per disegnare i pallini
+        // Funzione per disegnare i punti sulla mappa
         function disegnaPunti(punti) {
             punti.forEach(ponto => {
                 if (ponto.latitude && ponto.longitude) {
@@ -126,7 +126,7 @@
             });
         }
 
-        // Carica i dati dal tuo file JSON aggiornato dal robot
+        // Caricamento esclusivo dei dati reali dal file JSON generato dal bot
         fetch('incendi.json')
             .then(response => response.json())
             .then(data => {
