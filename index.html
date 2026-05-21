@@ -2,15 +2,17 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Monitoraggio Incendi Italia</title>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body, html { height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body, html { height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
         #map { height: 100%; width: 100%; background: #242424; }
         
-        /* Bottone Segnalazioni/Login in alto a sinistra */
+        /* Bottone Segnalazioni/Login */
         .btn-controllo {
             position: absolute;
             top: 80px;
@@ -27,7 +29,7 @@
         }
         .btn-controllo:hover { background: #c92a2a; }
 
-        /* Finestra Modale in sovrimpressione */
+        /* Finestra Modale OTTIMIZZATA PER MOBILE */
         .modal {
             display: none;
             position: fixed;
@@ -36,11 +38,13 @@
             transform: translate(-50%, -50%);
             z-index: 2000;
             background: white;
-            padding: 25px;
+            padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-            width: 90%;
+            width: 92%;
             max-width: 420px;
+            max-height: 85vh; /* Se supera lo schermo, crea la barra di scorrimento */
+            overflow-y: auto; /* Scorrimento interno per smartphone */
         }
         .modal h3 { color: #c92a2a; margin-bottom: 15px; }
         .modal input, .modal textarea, .modal select {
@@ -66,14 +70,8 @@
             display: block;
             margin-bottom: 6px;
         }
-        .inputs-dms {
-            display: flex;
-            gap: 6px;
-        }
-        .inputs-dms input {
-            margin-bottom: 0 !important;
-            text-align: center;
-        }
+        .inputs-dms { display: flex; gap: 6px; }
+        .inputs-dms input { margin-bottom: 0 !important; text-align: center; }
 
         .modal button {
             background: #2b8a3e;
@@ -92,10 +90,6 @@
             color: white;
             border: none;
             padding: 10px;
-            width: 100%;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
         }
         .modal .chiudi:hover { background: #5a6268; }
         .modal p { font-size: 13px; text-align: center; margin-top: 10px; }
@@ -117,7 +111,7 @@
             margin-bottom: 4px;
         }
 
-        /* Legenda */
+        /* Legenda e Tabelle */
         .info.legend { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 280px; }
         .legend h4 { color: #c92a2a; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
         .legend p { font-size: 12px; color: #495057; line-height: 1.4; margin-bottom: 5px; }
@@ -127,51 +121,49 @@
         .dot.utente { background-color: #fab005; box-shadow: 0 0 6px #fcc419; }
         .dot.cittadino { background-color: #e67e22; box-shadow: 0 0 6px #f39c12; }
 
-        /* Tabella Indici di Rischio */
-        .info.risk-table {
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            width: 240px;
-        }
-        .risk-table h4 {
-            color: #212529;
-            margin-bottom: 8px;
-            font-size: 13px;
-            font-weight: 700;
-            text-align: center;
-            border-bottom: 2px solid #dee2e6;
-            padding-bottom: 4px;
-        }
-        .tabella-rischio {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11px;
-        }
-        .tabella-rischio th, .tabella-rischio td {
-            padding: 5px 4px;
-            text-align: left;
-            border-bottom: 1px solid #f1f3f5;
-        }
-        .tabella-rischio th {
-            color: #495057;
-            font-weight: bold;
-        }
-        .badge-rischio {
-            padding: 2px 6px;
-            border-radius: 3px;
-            color: white;
-            font-weight: bold;
-            font-size: 10px;
-            display: inline-block;
-            text-align: center;
-            width: 55px;
-        }
+        .info.risk-table { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 240px; }
+        .risk-table h4 { color: #212529; margin-bottom: 8px; font-size: 13px; font-weight: 700; text-align: center; border-bottom: 2px solid #dee2e6; padding-bottom: 4px; }
+        .tabella-rischio { width: 100%; border-collapse: collapse; font-size: 11px; }
+        .tabella-rischio th, .tabella-rischio td { padding: 5px 4px; text-align: left; border-bottom: 1px solid #f1f3f5; }
+        .badge-rischio { padding: 2px 6px; border-radius: 3px; color: white; font-weight: bold; font-size: 10px; display: inline-block; text-align: center; width: 55px; }
         .r-basso { background-color: #2b8a3e; }
         .r-medio { background-color: #fab005; color: #212529; }
         .r-alto { background-color: #f76707; }
         .r-estremo { background-color: #e03131; }
+
+        /* ========================================================= */
+        /* REGOLE SPECIFICHE PER SMARTPHONE (Schermi piccoli)        */
+        /* ========================================================= */
+        @media (max-width: 600px) {
+            /* Sposta il bottone in basso e fallo largo */
+            .btn-controllo {
+                top: auto;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 90%;
+                text-align: center;
+                font-size: 16px;
+                padding: 15px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            }
+
+            /* Riduci la grandezza dei campi coordinate */
+            .inputs-dms input { padding: 6px 2px; font-size: 12px; }
+
+            /* Riduci ingombro legenda */
+            .info.legend { 
+                padding: 10px; 
+                max-width: 200px;
+                margin-bottom: 80px; /* Lascia spazio al bottone */
+            }
+            .legend h4 { font-size: 12px; margin-bottom: 5px; }
+            .legend p, .legend-item { font-size: 10px; }
+            .dot { height: 8px; width: 8px; }
+
+            /* Nascondi la tabella rischi per non coprire la mappa */
+            .info.risk-table { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -180,6 +172,7 @@
 
     <div class="modal-overlay" id="overlay" onclick="chiudiFinestra()"></div>
     <div class="modal" id="finestraModale">
+        
         <div id="sezioneAuth">
             <h3 id="titoloAuth">Accedi alla Piattaforma</h3>
             <input type="email" id="email" placeholder="La tua Email">
@@ -189,7 +182,7 @@
                 <label style="font-size: 12px; font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">Tipo di Profilo Operativo</label>
                 <select id="ruoloUtente">
                     <option value="cittadino">Cittadino / Utente Comune</option>
-                    <option value="volontario">Volontario Attivo (AIB / Protezione Civile)</option>
+                    <option value="volontario">Volontario Attivo (Richiede Codice)</option>
                 </select>
             </div>
 
@@ -232,12 +225,12 @@
             </div>
 
             <div class="gruppo-coordinate" style="border: 1px dashed #e03131; background: #fff5f5;">
-                <label class="input-file-label">📸 CARICA FOTO INCENDIO (OBBLIGATORIO)</label>
+                <label class="input-file-label">📸 CARICA FOTO (OBBLIGATORIO)</label>
                 <input type="file" id="segnalaFoto" accept="image/*" style="margin-bottom:0; padding:4px; border:none; background:transparent;">
             </div>
 
-            <textarea id="segnalaNote" placeholder="Note operative (es. Fumo denso, colonna visibile da...)" rows="3"></textarea>
-            <button id="btnInviaSegnalazione" onclick="inviaSegnalazione()">Invia Segnalazione Operativa</button>
+            <textarea id="segnalaNote" placeholder="Note operative (es. Fumo denso, vento...)" rows="3"></textarea>
+            <button id="btnInviaSegnalazione" onclick="inviaSegnalazione()">Invia Segnalazione</button>
         </div>
 
         <button class="chiudi" onclick="chiudiFinestra()">Annulla</button>
@@ -270,211 +263,165 @@
         let ruoloUtenteLoggato = "cittadino"; 
         let modalitaRegistrazione = false;
 
-        // Mappe di sfondo
+        // Inizializzazione Mappa
         const mappaScura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO', maxZoom: 20 });
         const mappaSatellitare = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
         const mappaTopografica = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenTopoMap', maxZoom: 17 });
 
         const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [mappaScura] });
         
-        // CONTENITORI DINAMICI (Gruppi di Livelli per isolare e pulire i marker senza ricaricare la mappa)
+        // Livelli dinamici per aggiornamenti in tempo reale
         const layerNasa = L.layerGroup().addTo(map);
         const layerUtenti = L.layerGroup().addTo(map);
 
         L.control.layers({ "Mappa Scura": mappaScura, "Vista Satellitare": mappaSatellitare, "Vista Topografica": mappaTopografica }).addTo(map);
 
-        // Legenda Principale
+        // Aggiunta Controlli Visivi
         const legend = L.control({ position: 'bottomleft' });
         legend.onAdd = function () {
             const div = L.DomUtil.create('div', 'info legend');
-            div.innerHTML = `
-                <h4>Monitoraggio Incendi Italia</h4>
-                <p>Aggiornamento continuo 24h</p>
-                <div class="legend-item"><span class="dot nasa"></span>Rilevamento Satellite NASA</div>
-                <div class="legend-item"><span class="dot utente"></span>Segnalazione Validata (Volontari)</div>
-                <div class="legend-item"><span class="dot cittadino"></span>Da Verificare (Cittadini)</div>
-            `;
+            div.innerHTML = `<h4>Monitoraggio Italia</h4>
+                <div class="legend-item"><span class="dot nasa"></span>Satellite NASA</div>
+                <div class="legend-item"><span class="dot utente"></span>Validata (Volontari)</div>
+                <div class="legend-item"><span class="dot cittadino"></span>Da Verificare (Cittadini)</div>`;
             return div;
         };
         legend.addTo(map);
 
-        // Tabella Rischio
         const riskControl = L.control({ position: 'topright' });
         riskControl.onAdd = function () {
             const div = L.DomUtil.create('div', 'info risk-table');
-            div.innerHTML = `
-                <h4>Indici di Rischio AIB</h4>
+            div.innerHTML = `<h4>Indici di Rischio</h4>
                 <table class="tabella-rischio">
-                    <thead><tr><th>Indice</th><th>Effetti al suolo</th></tr></thead>
-                    <tbody>
-                        <tr><td><span class="badge-rischio r-basso">BASSO</span></td><td>Innesco difficile. Focolai facili da contenere.</td></tr>
-                        <tr><td><span class="badge-rischio r-medio">MEDIO</span></td><td>Innesco possibile. Velocità moderata.</td></tr>
-                        <tr><td><span class="badge-rischio r-alto">ALTO</span></td><td>Propagazione rapida. Controllo impegnativo.</td></tr>
-                        <tr><td><span class="badge-rischio r-estremo">ESTREMO</span></td><td>Attacco diretto difficile. Fronti estesi.</td></tr>
-                    </tbody>
-                </table>
-            `;
+                    <tr><td><span class="badge-rischio r-basso">BASSO</span></td><td>Innesco difficile.</td></tr>
+                    <tr><td><span class="badge-rischio r-medio">MEDIO</span></td><td>Propagazione moderata.</td></tr>
+                    <tr><td><span class="badge-rischio r-alto">ALTO</span></td><td>Propagazione rapida.</td></tr>
+                    <tr><td><span class="badge-rischio r-estremo">ESTREMO</span></td><td>Controllo difficile.</td></tr>
+                </table>`;
             return div;
         };
         riskControl.addTo(map);
 
-        // 1. GESTIONE LIVELLO SATELLITARE (Polling automatico)
+        // AGGIORNAMENTO DATI SATELLITE (Polling ogni 5 minuti)
         function aggiornaDatiSatellite() {
-            // Aggiungiamo un timestamp casuale in fondo all'URL per ingannare la cache del browser (?t=...)
             fetch('incendi.json?t=' + Date.now())
                 .then(response => response.json())
                 .then(punti => {
                     if (punti && punti.length > 0) {
-                        layerNasa.clearLayers(); // Svuota i vecchi marker del satellite prima di ridisegnare
-                        
+                        layerNasa.clearLayers();
                         punti.forEach(ponto => {
                             if (ponto.latitude && ponto.longitude) {
-                                let rawKelvin = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
-                                let stringaTemperatura = 'N/D';
-                                if (rawKelvin) {
-                                    let celsius = parseFloat(rawKelvin) - 273.15;
-                                    stringaTemperatura = `${celsius.toFixed(1)} °C`;
-                                }
-
+                                let temp = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
+                                let celsius = temp ? (parseFloat(temp) - 273.15).toFixed(1) + " °C" : 'N/D';
                                 L.circleMarker([parseFloat(ponto.latitude), parseFloat(ponto.longitude)], {
                                     radius: 6, fillColor: "#ff1a1a", color: "#ff8888", weight: 1.5, opacity: 0.9, fillOpacity: 0.75
                                 }).addTo(layerNasa).bindPopup(`
-                                    <strong>Satellite NASA FIRMS</strong><br><hr style="margin:5px 0; border-top:1px solid #eee;">
-                                    <b>Lat/Lon:</b> ${ponto.latitude}, ${ponto.longitude}<br>
-                                    <b>Temperatura Termica:</b> <span style="color:#e03131; font-weight:bold;">${stringaTemperatura}</span><br>
-                                    <b>Ora (UTC):</b> ${ponto.acq_time || 'N/D'}<br>
-                                    <b>Potenza Energetica (FRP):</b> ${ponto.frp || 'N/D'} MW
+                                    <strong>Satellite NASA FIRMS</strong><br>
+                                    <b>Temp. Termica:</b> ${celsius}<br>
+                                    <b>Ora UTC:</b> ${ponto.acq_time || 'N/D'}
                                 `);
                             }
                         });
-                        console.log("Mappa Satellitare aggiornata con successo.");
                     }
-                })
-                .catch(e => console.log("In attesa di nuovi passaggi o file non ancora modificato:", e));
+                }).catch(() => console.log("Nessun dato NASA."));
         }
 
-        // 2. GESTIONE SEGNALAZIONI IN TEMPO REALE (Firebase onSnapshot)
+        // ASCOLTO IN TEMPO REALE SEGNALAZIONI (Firebase onSnapshot)
         function attivaAscoltoSegnalazioni() {
-            // onSnapshot rimane in ascolto perpetuo. Se il database cambia, riesegue questa funzione istantaneamente
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
-                layerUtenti.clearLayers(); // Pulisce i vecchi punti utente sulla mappa
-                
+                layerUtenti.clearLayers();
                 querySnapshot.forEach((doc) => {
                     const dati = doc.data();
-                    let stringaDms = dati.dms ? `<b>Coordinate DMS:</b> ${dati.dms}<br>` : '';
-                    let stringaCombustibile = dati.combustibile ? `<b>Vegetazione:</b> ${dati.combustibile}<br>` : '';
-                    let bloccoFoto = dati.fotoBase64 ? `<div style="margin-top:8px; text-align:center;"><img src="${dati.fotoBase64}" style="width:100%; max-height:130px; border-radius:4px; object-fit:cover; border:1px solid #ddd;"></div>` : '';
-                    
-                    let badgeStato = "";
-                    let colorePunto = "#fab005"; 
-
-                    if (dati.stato === "In attesa di validazione operativa") {
-                        badgeStato = `<div style="background:#fff9db; color:#e67e22; border:1px solid #ffe066; padding:5px; border-radius:4px; font-weight:bold; font-size:10px; text-align:center; margin-bottom:8px;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>`;
-                        colorePunto = "#e67e22"; 
-                    } else {
-                        badgeStato = `<div style="background:#ebfbee; color:#2b8a3e; border:1px solid #c3fae8; padding:5px; border-radius:4px; font-weight:bold; font-size:10px; text-align:center; margin-bottom:8px;">✅ SEGNALAZIONE VALIDATA</div>`;
-                    }
+                    let stringaDms = dati.dms ? `<b>Coordinate:</b> ${dati.dms}<br>` : '';
+                    let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:130px; border-radius:4px; margin-top:8px;">` : '';
+                    let badge = dati.stato === "In attesa di validazione operativa" 
+                        ? `<div style="background:#fff9db; color:#e67e22; padding:5px; border-radius:4px; font-weight:bold; font-size:10px; margin-bottom:8px;">⚠️ IN ATTESA</div>`
+                        : `<div style="background:#ebfbee; color:#2b8a3e; padding:5px; border-radius:4px; font-weight:bold; font-size:10px; margin-bottom:8px;">✅ VALIDATA</div>`;
+                    let colore = dati.stato === "In attesa di validazione operativa" ? "#e67e22" : "#fab005";
                     
                     L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
-                        radius: 7, fillColor: colorePunto, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.85
-                    }).addTo(layerUtenti).bindPopup(`
-                        ${badgeStato}
-                        ${stringaDms}
-                        ${stringaCombustibile}
-                        <b>Lat/Lon Decimale:</b> ${dati.latitudine}, ${dati.longitudine}<br>
-                        <b>Note:</b> ${dati.note || 'Nessuna nota aggiuntiva'}<br>
-                        <b>Inviato da:</b> ${dati.utente}
-                        ${bloccoFoto}
-                    `);
+                        radius: 7, fillColor: colore, color: "#fff", weight: 2, fillOpacity: 0.85
+                    }).addTo(layerUtenti).bindPopup(`${badge}${stringaDms}<b>Inviato da:</b> ${dati.utente}${img}`);
                 });
-                console.log("Livello segnalazioni sul campo sincronizzato in tempo reale.");
-            }, (error) => {
-                console.error("Errore sincronizzazione live: ", error);
             });
         }
 
-        // Funzione per comprimere in Base64
-        function comprimiInBase64(file, maxWidth, maxHeight, quality) {
+        // Funzione per comprimere immagine in Base64
+        function comprimiInBase64(file, maxW, maxH, quality) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
-                reader.onload = function (event) {
+                reader.onload = e => {
                     const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = function () {
+                    img.src = e.target.result;
+                    img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height) {
-                            if (width > maxWidth) {
-                                height *= maxWidth / width;
-                                width = maxWidth;
-                            }
-                        } else {
-                            if (height > maxHeight) {
-                                width *= maxHeight / height;
-                                height = maxHeight;
-                            }
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
+                        let w = img.width, h = img.height;
+                        if (w > h) { if (w > maxW) { h *= maxW / w; w = maxW; } } 
+                        else { if (h > maxH) { w *= maxH / h; h = maxH; } }
+                        canvas.width = w; canvas.height = h;
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-
-                        const base64String = canvas.toDataURL('image/jpeg', quality);
-                        resolve(base64String);
+                        ctx.drawImage(img, 0, 0, w, h);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
                     };
                 };
-                reader.onerror = (e) => reject(e);
+                reader.onerror = e => reject(e);
             });
         }
 
-        // --- AVVIO E LIVELLO TIMER DI AGGIORNAMENTO ---
-        aggiornaDatiSatellite();      // Esegui subito al caricamento iniziale
-        attivaAscoltoSegnalazioni();  // Attiva subito l'ascolto real-time di Firebase
-        
-        // Controlla il file del satellite in background ogni 5 minuti (300000 millisecondi)
+        // Avvio Script Base
+        aggiornaDatiSatellite();
+        attivaAscoltoSegnalazioni();
         setInterval(aggiornaDatiSatellite, 300000);
 
-        // Controllo stato login
+        // Controllo Autenticazione
         onAuthStateChanged(auth, async (user) => {
-            const btnAzione = document.getElementById('btnAzione');
+            const btn = document.getElementById('btnAzione');
             if (user) {
                 utenteLoggato = user;
                 try {
                     const userDoc = await getDoc(doc(db, "utenti", user.uid));
-                    if (userDoc.exists()) {
-                        ruoloUtenteLoggato = userDoc.data().ruolo;
-                    } else {
-                        ruoloUtenteLoggato = "cittadino";
-                    }
+                    ruoloUtenteLoggato = userDoc.exists() ? userDoc.data().ruolo : "cittadino";
                 } catch(e) { ruoloUtenteLoggato = "cittadino"; }
-
-                btnAzione.innerText = "Segnala Incendio";
-                btnAzione.style.background = "#2b8a3e";
+                btn.innerText = "Segnala Incendio";
+                btn.style.background = "#2b8a3e";
                 document.getElementById('sezioneAuth').style.display = "none";
                 document.getElementById('sezioneSegnala').style.display = "block";
             } else {
                 utenteLoggato = null;
                 ruoloUtenteLoggato = "cittadino";
-                btnAzione.innerText = "Accedi / Segnala";
-                btnAzione.style.background = "#e03131";
+                btn.innerText = "Accedi / Segnala";
+                btn.style.background = "#e03131";
                 document.getElementById('sezioneAuth').style.display = "block";
                 document.getElementById('sezioneSegnala').style.display = "none";
             }
         });
 
+        // GESTIONE REGISTRAZIONE CON CONTROLLO VOLONTARI
         window.gestisciAuth = async function() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             if(!email || !password) { alert("Compila tutti i campi!"); return; }
+            
             try {
                 if (modalitaRegistrazione) {
+                    let ruoloScelto = document.getElementById('ruoloUtente').value;
+                    
+                    // CONTROLLO CODICE SEGRETO PER VOLONTARI
+                    if (ruoloScelto === "volontario") {
+                        const codiceInserito = prompt("Per registrarti come Volontario, inserisci il Codice Operativo della Sezione:");
+                        
+                        // IL CODICE SEGRETO È "VAB2026". Cambialo come preferisci.
+                        if (codiceInserito !== "VAB2026") {
+                            alert("❌ Codice Errato. Verrai registrato temporaneamente come Cittadino Comune.");
+                            ruoloScelto = "cittadino"; // Forza la retrocessione a cittadino
+                        } else {
+                            alert("✅ Codice corretto. Registrazione come Volontario approvata.");
+                        }
+                    }
+
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const user = userCredential.user;
-                    const ruoloScelto = document.getElementById('ruoloUtente').value;
                     await setDoc(doc(db, "utenti", user.uid), { email: email, ruolo: ruoloScelto });
                     alert("Registrazione completata!");
                 } else {
@@ -484,90 +431,54 @@
             } catch (error) { alert("Errore: " + error.message); }
         };
 
+        // Invio Segnalazione
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
             const latS = parseFloat(document.getElementById('latSecondi').value) || 0;
-
             const lonG = parseFloat(document.getElementById('lonGradi').value) || 0;
             const lonP = parseFloat(document.getElementById('lonPrimi').value) || 0;
             const lonS = parseFloat(document.getElementById('lonSecondi').value) || 0;
             
-            const tipoCombustibile = document.getElementById('segnalaCombustibile').value;
-            const note = document.getElementById('segnalaNote').value;
             const fotoFile = document.getElementById('segnalaFoto').files[0];
-
             if (!document.getElementById('latGradi').value || !document.getElementById('lonGradi').value) {
-                alert("I Gradi di Latitudine e Longitudine sono obbligatori!");
-                return;
+                alert("I Gradi di Latitudine e Longitudine sono obbligatori!"); return;
             }
+            if (!fotoFile) { alert("❌ È obbligatorio caricare una foto del fronte fuoco!"); return; }
 
-            if (!fotoFile) {
-                alert("❌ Errore Operativo: È obbligatorio caricare una foto del fronte fuoco!");
-                return;
-            }
+            const btn = document.getElementById('btnInviaSegnalazione');
+            btn.innerText = "Elaborazione..."; btn.disabled = true;
 
-            const btnInvia = document.getElementById('btnInviaSegnalazione');
-            btnInvia.innerText = "Elaborazione immediata foto...";
-            btnInvia.disabled = true;
-
-            const latDecimale = latG + (latP / 60) + (latS / 3600);
-            const lonDecimale = lonG + (lonP / 60) + (lonS / 3600);
-            const stringaDMS = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
-            const statoImpostato = ruoloUtenteLoggato === "volontario" ? "Validata" : "In attesa di validazione operativa";
+            const latD = latG + (latP/60) + (latS/3600);
+            const lonD = lonG + (lonP/60) + (lonS/3600);
+            const dms = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
+            const stato = ruoloUtenteLoggato === "volontario" ? "Validata" : "In attesa di validazione operativa";
 
             try {
-                const stringaFotoOttimizzata = await comprimiInBase64(fotoFile, 800, 800, 0.7);
-                btnInvia.innerText = "Trasmissione dati in centrale...";
-
+                const fotoB64 = await comprimiInBase64(fotoFile, 800, 800, 0.7);
+                btn.innerText = "Trasmissione...";
                 await addDoc(collection(db, "segnalazioni"), {
-                    latitudine: latDecimale.toFixed(6),
-                    longitudine: lonDecimale.toFixed(6),
-                    dms: stringaDMS,
-                    combustibile: tipoCombustibile,
-                    note: note,
-                    utente: utenteLoggato.email,
-                    stato: statoImpostato,
-                    fotoBase64: stringaFotoOttimizzata, 
+                    latitudine: latD.toFixed(6), longitudine: lonD.toFixed(6), dms: dms,
+                    combustibile: document.getElementById('segnalaCombustibile').value,
+                    note: document.getElementById('segnalaNote').value,
+                    utente: utenteLoggato.email, stato: stato, fotoBase64: fotoB64, 
                     data: new Date().toISOString()
                 });
-
-                alert("Segnalazione trasmessa istantaneamente!");
+                alert("Trasmesso istantaneamente in centrale!");
                 chiudiFinestra();
-                
-                // NOTA: Abbiamo rimosso location.reload() perché la mappa si aggiorna da sola grazie a onSnapshot!
-                // Puliamo solo i campi del modulo per la prossima segnalazione
-                document.getElementById('latGradi').value = '';
-                document.getElementById('latPrimi').value = '';
-                document.getElementById('latSecondi').value = '';
-                document.getElementById('lonGradi').value = '';
-                document.getElementById('lonPrimi').value = '';
-                document.getElementById('lonSecondi').value = '';
-                document.getElementById('segnalaNote').value = '';
-                document.getElementById('segnalaFoto').value = '';
+                // Pulizia campi
+                ['latGradi','latPrimi','latSecondi','lonGradi','lonPrimi','lonSecondi','segnalaNote','segnalaFoto'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('segnalaCombustibile').value = 'Non specificato';
-                
-                btnInvia.innerText = "Invia Segnalazione Operativa";
-                btnInvia.disabled = false;
-
-            } catch (e) { 
-                alert("Errore trasmissione: " + e.message); 
-                btnInvia.innerText = "Invia Segnalazione Operativa";
-                btnInvia.disabled = false;
-            }
+                btn.innerText = "Invia Segnalazione"; btn.disabled = false;
+            } catch (e) { alert("Errore: " + e.message); btn.innerText = "Invia Segnalazione"; btn.disabled = false; }
         };
 
-        window.apriFinestra = function() {
-            document.getElementById('finestraModale').style.display = 'block';
-            document.getElementById('overlay').style.display = 'block';
-        };
-        window.chiudiFinestra = function() {
-            document.getElementById('finestraModale').style.display = 'none';
-            document.getElementById('overlay').style.display = 'none';
-        };
+        // Funzioni UI Base
+        window.apriFinestra = function() { document.getElementById('finestraModale').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; };
+        window.chiudiFinestra = function() { document.getElementById('finestraModale').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; };
         window.cambiaModalitaAuth = function() {
             modalitaRegistrazione = !modalitaRegistrazione;
-            document.getElementById('titoloAuth').innerText = modalitaRegistrazione ? "Registra Nuovo Account" : "Accedi alla Piattaforma";
+            document.getElementById('titoloAuth').innerText = modalitaRegistrazione ? "Registrati" : "Accedi";
             document.getElementById('btnAuth').innerText = modalitaRegistrazione ? "Registrati" : "Accedi";
             document.getElementById('switchAuth').innerHTML = modalitaRegistrazione ? "Hai già un account? <span onclick='cambiaModalitaAuth()'>Accedi qui</span>" : "Non hai un account? <span onclick='cambiaModalitaAuth()'>Registrati qui</span>";
             document.getElementById('divRuolo').style.display = modalitaRegistrazione ? "block" : "none";
