@@ -109,6 +109,15 @@
             z-index: 1999;
         }
 
+        /* Stile specifico per il caricamento file */
+        .input-file-label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            color: #c92a2a;
+            margin-bottom: 4px;
+        }
+
         /* Legenda */
         .info.legend { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 280px; }
         .legend h4 { color: #c92a2a; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
@@ -219,12 +228,17 @@
                     <option value="Sottobosco / Arbusti">Sottobosco / Arbusti</option>
                     <option value="Macchia Mediterranea">Macchia Mediterranea</option>
                     <option value="Bosco d'Alto Fusto (Chiome)">Bosco d'Alto Fusto (Incendio di Chioma)</option>
-                    <option value="Residui agricoli / Abilitazioni">Residui agricoli / Abbruciamenti</option>
+                    <option value="Residui agricoli / Abbruciamenti">Residui agricoli / Abbruciamenti</option>
                 </select>
             </div>
 
+            <div class="gruppo-coordinate" style="border: 1px dashed #e03131; background: #fff5f5;">
+                <label class="input-file-label">📸 CARICA FOTO INCENDIO (OBBLIGATORIO)</label>
+                <input type="file" id="segnalaFoto" accept="image/*" style="margin-bottom:0; padding:4px; border:none; background:transparent;">
+            </div>
+
             <textarea id="segnalaNote" placeholder="Note operative (es. Fumo denso, colonna visibile da...)" rows="3"></textarea>
-            <button onclick="inviaSegnalazione()">Invia Segnalazione Operativa</button>
+            <button id="btnInviaSegnalazione" onclick="inviaSegnalazione()">Invia Segnalazione Operativa</button>
         </div>
 
         <button class="chiudi" onclick="chiudiFinestra()">Annulla</button>
@@ -238,8 +252,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-        // Credenziali Firebase reali
+        // Credenziali Firebase
         const firebaseConfig = {
           apiKey: "AIzaSyCtpbSPhgWoFIvAjGVsboBayl9oJjzDjy4",
           authDomain: "monitoraggio-incendi-v1.firebaseapp.com",
@@ -252,6 +267,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app); // Inizializzazione Cloud Storage
 
         let utenteLoggato = null;
         let ruoloUtenteLoggato = "cittadino"; 
@@ -280,36 +296,19 @@
         };
         legend.addTo(map);
 
-        // Tabella Indici di Rischio
+        // Tabella Rischio
         const riskControl = L.control({ position: 'topright' });
         riskControl.onAdd = function () {
             const div = L.DomUtil.create('div', 'info risk-table');
             div.innerHTML = `
                 <h4>Indici di Rischio AIB</h4>
                 <table class="tabella-rischio">
-                    <thead>
-                        <tr>
-                            <th>Indice</th>
-                            <th>Effetti al suolo</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Indice</th><th>Effetti al suolo</th></tr></thead>
                     <tbody>
-                        <tr>
-                            <td><span class="badge-rischio r-basso">BASSO</span></td>
-                            <td>Innesco difficile. Focolai facili da contenere.</td>
-                        </tr>
-                        <tr>
-                            <td><span class="badge-rischio r-medio">MEDIO</span></td>
-                            <td>Innesco possibile. Velocità moderata.</td>
-                        </tr>
-                        <tr>
-                            <td><span class="badge-rischio r-alto">ALTO</span></td>
-                            <td>Propagazione rapida. Controllo impegnativo.</td>
-                        </tr>
-                        <tr>
-                            <td><span class="badge-rischio r-estremo">ESTREMO</span></td>
-                            <td>Attacco diretto difficile. Fronti estesi.</td>
-                        </tr>
+                        <tr><td><span class="badge-rischio r-basso">BASSO</span></td><td>Innesco difficile. Focolai facili da contenere.</td></tr>
+                        <tr><td><span class="badge-rischio r-medio">MEDIO</span></td><td>Innesco possibile. Velocità moderata.</td></tr>
+                        <tr><td><span class="badge-rischio r-alto">ALTO</span></td><td>Propagazione rapida. Controllo impegnativo.</td></tr>
+                        <tr><td><span class="badge-rischio r-estremo">ESTREMO</span></td><td>Attacco diretto difficile. Fronti estesi.</td></tr>
                     </tbody>
                 </table>
             `;
@@ -317,14 +316,12 @@
         };
         riskControl.addTo(map);
 
-        // Disegna Punti NASA - CALCOLO GRADI ATTIVO ESCLUSIVAMENTE DA SATELLITE
+        // Disegna Punti NASA
         function disegnaPuntiNasa(punti) {
             punti.forEach(ponto => {
                 if (ponto.latitude && ponto.longitude) {
-                    // Prende il canale termico rilevato dai sensori infrarossi spaziali MODIS/VIIRS
                     let rawKelvin = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
                     let stringaTemperatura = 'N/D';
-                    
                     if (rawKelvin) {
                         let celsius = parseFloat(rawKelvin) - 273.15;
                         stringaTemperatura = `${celsius.toFixed(1)} °C`;
@@ -343,14 +340,17 @@
             });
         }
 
-        // Carica Punti Utente da Firebase (Mostra il tipo di combustibile)
+        // Carica Punti Utente da Firebase con visualizzazione dell'immagine caricata
         async function caricaSegnalazioniUtenti() {
             try {
                 const querySnapshot = await getDocs(collection(db, "segnalazioni"));
                 querySnapshot.forEach((doc) => {
                     const dati = doc.data();
                     let stringaDms = dati.dms ? `<b>Coordinate DMS:</b> ${dati.dms}<br>` : '';
-                    let stringaCombustibile = dati.combustibile ? `<b>Vegetazione colpita:</b> ${dati.combustibile}<br>` : '';
+                    let stringaCombustibile = dati.combustibile ? `<b>Vegetazione:</b> ${dati.combustibile}<br>` : '';
+                    
+                    // Tag HTML per caricare la foto nel popup se presente nel database
+                    let bloccoFoto = dati.fotoUrl ? `<div style="margin-top:8px; text-align:center;"><a href="${dati.fotoUrl}" target="_blank"><img src="${dati.fotoUrl}" style="width:100%; max-height:120px; border-radius:4px; object-fit:cover; border:1px solid #ddd;"></a><em style="font-size:9px; color:#777; display:block;">Clicca sulla foto per ingrandirla</em></div>` : '';
                     
                     let badgeStato = "";
                     let colorePunto = "#fab005"; 
@@ -371,6 +371,7 @@
                         <b>Lat/Lon Decimale:</b> ${dati.latitudine}, ${dati.longitudine}<br>
                         <b>Note:</b> ${dati.note || 'Nessuna nota aggiuntiva'}<br>
                         <b>Inviato da:</b> ${dati.utente}
+                        ${bloccoFoto}
                     `);
                 });
             } catch (e) { console.error("Errore database: ", e); }
@@ -384,7 +385,7 @@
 
         caricaSegnalazioniUtenti();
 
-        // Controllo stato login e lettura ruolo
+        // Controllo stato login
         onAuthStateChanged(auth, async (user) => {
             const btnAzione = document.getElementById('btnAzione');
             if (user) {
@@ -422,12 +423,8 @@
                     const user = userCredential.user;
                     const ruoloScelto = document.getElementById('ruoloUtente').value;
 
-                    await setDoc(doc(db, "utenti", user.uid), {
-                        email: email,
-                        ruolo: ruoloScelto
-                    });
-
-                    alert("Registrazione completata con profilo impostato!");
+                    await setDoc(doc(db, "utenti", user.uid), { email: email, ruolo: ruoloScelto });
+                    alert("Registrazione completata!");
                 } else {
                     await signInWithEmailAndPassword(auth, email, password);
                 }
@@ -435,7 +432,7 @@
             } catch (error) { alert("Errore: " + error.message); }
         };
 
-        // Funzione di invio dati
+        // Invio con upload asincrono e blocco obbligatorio della foto
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
@@ -447,19 +444,42 @@
             
             const tipoCombustibile = document.getElementById('segnalaCombustibile').value;
             const note = document.getElementById('segnalaNote').value;
+            
+            // Gestione del file input
+            const fotoFile = document.getElementById('segnalaFoto').files[0];
 
             if (!document.getElementById('latGradi').value || !document.getElementById('lonGradi').value) {
                 alert("I Gradi di Latitudine e Longitudine sono obbligatori!");
                 return;
             }
 
+            // BLOCCO DI CONTROLLO: Se la foto manca, ferma tutto
+            if (!fotoFile) {
+                alert("❌ Errore Operativo: È obbligatorio scattare o caricare una foto del fronte fuoco per convalidare la segnalazione!");
+                return;
+            }
+
+            // Disabilita il bottone per evitare invii multipli durante il caricamento della foto
+            const btnInvia = document.getElementById('btnInviaSegnalazione');
+            btnInvia.innerText = "Caricamento Immagine in corso...";
+            btnInvia.disabled = true;
+
             const latDecimale = latG + (latP / 60) + (latS / 3600);
             const lonDecimale = lonG + (lonP / 60) + (lonS / 3600);
-
             const stringaDMS = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
             const statoImpostato = ruoloUtenteLoggato === "volontario" ? "Validata" : "In attesa di validazione operativa";
 
             try {
+                // 1. Carica il file immagine su Firebase Storage usando un nome univoco (Timestamp)
+                const nomeFileUnivoco = `incendio_${Date.now()}_${fotoFile.name}`;
+                const storageRef = ref(storage, 'foto_incendi/' + nomeFileUnivoco);
+                
+                const snapshot = await uploadBytes(storageRef, fotoFile);
+                
+                // 2. Recupera l'URL pubblico dell'immagine caricata
+                const urlImmagineInCloud = await getDownloadURL(snapshot.ref);
+
+                // 3. Salva la segnalazione su Firestore includendo l'URL della foto
                 await addDoc(collection(db, "segnalazioni"), {
                     latitudine: latDecimale.toFixed(6),
                     longitudine: lonDecimale.toFixed(6),
@@ -468,12 +488,19 @@
                     note: note,
                     utente: utenteLoggato.email,
                     stato: statoImpostato,
+                    fotoUrl: urlImmagineInCloud, // Salvato nel db
                     data: new Date().toISOString()
                 });
-                alert("Segnalazione inviata in centrale!");
+
+                alert("Segnalazione inviata con successo completa di documentazione fotografica!");
                 chiudiFinestra();
                 location.reload();
-            } catch (e) { alert("Errore invio: " + e.message); }
+
+            } catch (e) { 
+                alert("Errore invio: " + e.message); 
+                btnInvia.innerText = "Invia Segnalazione Operativa";
+                btnInvia.disabled = false;
+            }
         };
 
         window.apriFinestra = function() {
