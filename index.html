@@ -43,7 +43,7 @@
             max-width: 420px;
         }
         .modal h3 { color: #c92a2a; margin-bottom: 15px; }
-        .modal input, .modal textarea {
+        .modal input, .modal textarea, .modal select {
             width: 100%;
             padding: 8px;
             margin-bottom: 12px;
@@ -109,7 +109,7 @@
             z-index: 1999;
         }
 
-        /* Legenda in basso a sinistra */
+        /* Legenda */
         .info.legend { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 280px; }
         .legend h4 { color: #c92a2a; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
         .legend p { font-size: 12px; color: #495057; line-height: 1.4; margin-bottom: 5px; }
@@ -117,8 +117,9 @@
         .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
         .dot.nasa { background-color: #e03131; box-shadow: 0 0 6px #f03e3e; }
         .dot.utente { background-color: #fab005; box-shadow: 0 0 6px #fcc419; }
+        .dot.cittadino { background-color: #e67e22; box-shadow: 0 0 6px #f39c12; }
 
-        /* Nuova Tabella Indici di Rischio in alto a destra */
+        /* Tabella Indici di Rischio */
         .info.risk-table {
             background: white;
             padding: 12px;
@@ -175,6 +176,15 @@
             <h3 id="titoloAuth">Accedi alla Piattaforma</h3>
             <input type="email" id="email" placeholder="La tua Email">
             <input type="password" id="password" placeholder="Password (minimo 6 caratteri)">
+            
+            <div id="divRuolo" style="display: none; margin-bottom: 12px;">
+                <label style="font-size: 12px; font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">Tipo di Profilo Operativo</label>
+                <select id="ruoloUtente">
+                    <option value="cittadino">Cittadino / Utente Comune</option>
+                    <option value="volontario">Volontario Attivo (AIB / Protezione Civile)</option>
+                </select>
+            </div>
+
             <button id="btnAuth" onclick="gestisciAuth()">Accedi</button>
             <p id="switchAuth">Non hai un account? <span onclick="cambiaModalitaAuth()">Registrati qui</span></p>
         </div>
@@ -215,7 +225,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // Credenziali Firebase reali
         const firebaseConfig = {
@@ -233,6 +243,7 @@
         const db = getFirestore(app);
 
         let utenteLoggato = null;
+        let ruoloUtenteLoggato = "cittadino"; 
         let modalitaRegistrazione = false;
 
         // Mappe di sfondo
@@ -243,7 +254,7 @@
         const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [mappaScura] });
         L.control.layers({ "Mappa Scura": mappaScura, "Vista Satellitare": mappaSatellitare, "Vista Topografica": mappaTopografica }).addTo(map);
 
-        // Legenda Principale (In basso a sinistra)
+        // Legenda Principale
         const legend = L.control({ position: 'bottomleft' });
         legend.onAdd = function () {
             const div = L.DomUtil.create('div', 'info legend');
@@ -251,13 +262,14 @@
                 <h4>Monitoraggio Incendi Italia</h4>
                 <p>Aggiornamento continuo 24h</p>
                 <div class="legend-item"><span class="dot nasa"></span>Rilevamento Satellite NASA</div>
-                <div class="legend-item"><span class="dot utente"></span>Segnalazione Utente/Volontario</div>
+                <div class="legend-item"><span class="dot utente"></span>Segnalazione Validata (Volontari)</div>
+                <div class="legend-item"><span class="dot cittadino"></span>Da Verificare (Cittadini)</div>
             `;
             return div;
         };
         legend.addTo(map);
 
-        // Nuova Tabella Indici di Rischio (In alto a destra)
+        // Tabella Indici di Rischio
         const riskControl = L.control({ position: 'topright' });
         riskControl.onAdd = function () {
             const div = L.DomUtil.create('div', 'info risk-table');
@@ -310,7 +322,7 @@
             });
         }
 
-        // Carica Punti Utente da Firebase
+        // Carica Punti Utente da Firebase (Gestisce i due ruoli e stati distinti)
         async function caricaSegnalazioniUtenti() {
             try {
                 const querySnapshot = await getDocs(collection(db, "segnalazioni"));
@@ -318,14 +330,24 @@
                     const dati = doc.data();
                     let stringaDms = dati.dms ? `<b>Coordinate DMS:</b> ${dati.dms}<br>` : '';
                     
+                    let badgeStato = "";
+                    let colorePunto = "#fab005"; // Giallo standard per volontari
+
+                    if (dati.stato === "In attesa di validazione operativa") {
+                        badgeStato = `<div style="background:#fff9db; color:#e67e22; border:1px solid #ffe066; padding:5px; border-radius:4px; font-weight:bold; font-size:10px; text-align:center; margin-bottom:8px;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>`;
+                        colorePunto = "#e67e22"; // Arancione per i cittadini da verificare
+                    } else {
+                        badgeStato = `<div style="background:#ebfbee; color:#2b8a3e; border:1px solid #c3fae8; padding:5px; border-radius:4px; font-weight:bold; font-size:10px; text-align:center; margin-bottom:8px;">✅ SEGNALAZIONE VALIDATA</div>`;
+                    }
+                    
                     L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
-                        radius: 7, fillColor: "#fab005", color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.85
+                        radius: 7, fillColor: colorePunto, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.85
                     }).addTo(map).bindPopup(`
-                        <strong style="color:#d9480f;">Segnalazione da Volontario</strong><br><hr style="margin:5px 0; border-top:1px solid #eee;">
+                        ${badgeStato}
                         ${stringaDms}
                         <b>Lat/Lon Decimale:</b> ${dati.latitudine}, ${dati.longitudine}<br>
                         <b>Note:</b> ${dati.note || 'Nessuna nota aggiuntiva'}<br>
-                        <b>Segnalato da:</b> ${dati.utente}
+                        <b>Inviato da:</b> ${dati.utente}
                     `);
                 });
             } catch (e) { console.error("Errore database: ", e); }
@@ -339,17 +361,29 @@
 
         caricaSegnalazioniUtenti();
 
-        // Controllo stato login
-        onAuthStateChanged(auth, (user) => {
+        // Controllo stato login e lettura RUOLO da Firebase
+        onAuthStateChanged(auth, async (user) => {
             const btnAzione = document.getElementById('btnAzione');
             if (user) {
                 utenteLoggato = user;
+                
+                // Recupera il ruolo salvato nel database per questo utente specifico
+                try {
+                    const userDoc = await getDoc(doc(db, "utenti", user.uid));
+                    if (userDoc.exists()) {
+                        ruoloUtenteLoggato = userDoc.data().ruolo;
+                    } else {
+                        ruoloUtenteLoggato = "cittadino"; // Fallback se non censito
+                    }
+                } catch(e) { ruoloUtenteLoggato = "cittadino"; }
+
                 btnAzione.innerText = "Segnala Incendio";
                 btnAzione.style.background = "#2b8a3e";
                 document.getElementById('sezioneAuth').style.display = "none";
                 document.getElementById('sezioneSegnala').style.display = "block";
             } else {
                 utenteLoggato = null;
+                ruoloUtenteLoggato = "cittadino";
                 btnAzione.innerText = "Accedi / Segnala";
                 btnAzione.style.background = "#e03131";
                 document.getElementById('sezioneAuth').style.display = "block";
@@ -363,8 +397,17 @@
             if(!email || !password) { alert("Compila tutti i campi!"); return; }
             try {
                 if (modalitaRegistrazione) {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    alert("Registrazione completata!");
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const user = userCredential.user;
+                    const ruoloScelto = document.getElementById('ruoloUtente').value;
+
+                    // Registra il ruolo dell'utente nella nuova tabella "utenti" su Firestore
+                    await setDoc(doc(db, "utenti", user.uid), {
+                        email: email,
+                        ruolo: ruoloScelto
+                    });
+
+                    alert("Registrazione completata con profilo impostato!");
                 } else {
                     await signInWithEmailAndPassword(auth, email, password);
                 }
@@ -372,7 +415,7 @@
             } catch (error) { alert("Errore: " + error.message); }
         };
 
-        // Funzione di invio con conversione DMS -> Decimale
+        // Funzione di invio con categorizzazione automatica dello STATO
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
@@ -394,6 +437,9 @@
 
             const stringaDMS = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
 
+            // Logica cruciale: se l'utente loggato è un cittadino, lo stato va in verifica obbligatoria
+            const statoImpostato = ruoloUtenteLoggato === "volontario" ? "Validata" : "In attesa di validazione operativa";
+
             try {
                 await addDoc(collection(db, "segnalazioni"), {
                     latitudine: latDecimale.toFixed(6),
@@ -401,9 +447,10 @@
                     dms: stringaDMS,
                     note: note,
                     utente: utenteLoggato.email,
+                    stato: statoImpostato,
                     data: new Date().toISOString()
                 });
-                alert("Segnalazione inviata con successo in centrale!");
+                alert("Segnalazione inviata in centrale!");
                 chiudiFinestra();
                 location.reload();
             } catch (e) { alert("Errore invio: " + e.message); }
@@ -422,6 +469,9 @@
             document.getElementById('titoloAuth').innerText = modalitaRegistrazione ? "Registra Nuovo Account" : "Accedi alla Piattaforma";
             document.getElementById('btnAuth').innerText = modalitaRegistrazione ? "Registrati" : "Accedi";
             document.getElementById('switchAuth').innerHTML = modalitaRegistrazione ? "Hai già un account? <span onclick='cambiaModalitaAuth()'>Accedi qui</span>" : "Non hai un account? <span onclick='cambiaModalitaAuth()'>Registrati qui</span>";
+            
+            // Mostra il selettore del ruolo SOLO in modalità registrazione
+            document.getElementById('divRuolo').style.display = modalitaRegistrazione ? "block" : "none";
         };
     </script>
 </body>
