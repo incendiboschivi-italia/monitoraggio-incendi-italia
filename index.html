@@ -250,7 +250,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // Credenziali Firebase
         const firebaseConfig = {
@@ -276,6 +276,11 @@
         const mappaTopografica = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenTopoMap', maxZoom: 17 });
 
         const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [mappaScura] });
+        
+        // CONTENITORI DINAMICI (Gruppi di Livelli per isolare e pulire i marker senza ricaricare la mappa)
+        const layerNasa = L.layerGroup().addTo(map);
+        const layerUtenti = L.layerGroup().addTo(map);
+
         L.control.layers({ "Mappa Scura": mappaScura, "Vista Satellitare": mappaSatellitare, "Vista Topografica": mappaTopografica }).addTo(map);
 
         // Legenda Principale
@@ -313,40 +318,51 @@
         };
         riskControl.addTo(map);
 
-        // Disegna Punti NASA
-        function disegnaPuntiNasa(punti) {
-            punti.forEach(ponto => {
-                if (ponto.latitude && ponto.longitude) {
-                    let rawKelvin = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
-                    let stringaTemperatura = 'N/D';
-                    if (rawKelvin) {
-                        let celsius = parseFloat(rawKelvin) - 273.15;
-                        stringaTemperatura = `${celsius.toFixed(1)} °C`;
-                    }
+        // 1. GESTIONE LIVELLO SATELLITARE (Polling automatico)
+        function aggiornaDatiSatellite() {
+            // Aggiungiamo un timestamp casuale in fondo all'URL per ingannare la cache del browser (?t=...)
+            fetch('incendi.json?t=' + Date.now())
+                .then(response => response.json())
+                .then(punti => {
+                    if (punti && punti.length > 0) {
+                        layerNasa.clearLayers(); // Svuota i vecchi marker del satellite prima di ridisegnare
+                        
+                        punti.forEach(ponto => {
+                            if (ponto.latitude && ponto.longitude) {
+                                let rawKelvin = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
+                                let stringaTemperatura = 'N/D';
+                                if (rawKelvin) {
+                                    let celsius = parseFloat(rawKelvin) - 273.15;
+                                    stringaTemperatura = `${celsius.toFixed(1)} °C`;
+                                }
 
-                    L.circleMarker([parseFloat(ponto.latitude), parseFloat(ponto.longitude)], {
-                        radius: 6, fillColor: "#ff1a1a", color: "#ff8888", weight: 1.5, opacity: 0.9, fillOpacity: 0.75
-                    }).addTo(map).bindPopup(`
-                        <strong>Satellite NASA FIRMS</strong><br><hr style="margin:5px 0; border-top:1px solid #eee;">
-                        <b>Lat/Lon:</b> ${ponto.latitude}, ${ponto.longitude}<br>
-                        <b>Temperatura Termica:</b> <span style="color:#e03131; font-weight:bold;">${stringaTemperatura}</span><br>
-                        <b>Ora (UTC):</b> ${ponto.acq_time || 'N/D'}<br>
-                        <b>Potenza Energetica (FRP):</b> ${ponto.frp || 'N/D'} MW
-                    `);
-                }
-            });
+                                L.circleMarker([parseFloat(ponto.latitude), parseFloat(ponto.longitude)], {
+                                    radius: 6, fillColor: "#ff1a1a", color: "#ff8888", weight: 1.5, opacity: 0.9, fillOpacity: 0.75
+                                }).addTo(layerNasa).bindPopup(`
+                                    <strong>Satellite NASA FIRMS</strong><br><hr style="margin:5px 0; border-top:1px solid #eee;">
+                                    <b>Lat/Lon:</b> ${ponto.latitude}, ${ponto.longitude}<br>
+                                    <b>Temperatura Termica:</b> <span style="color:#e03131; font-weight:bold;">${stringaTemperatura}</span><br>
+                                    <b>Ora (UTC):</b> ${ponto.acq_time || 'N/D'}<br>
+                                    <b>Potenza Energetica (FRP):</b> ${ponto.frp || 'N/D'} MW
+                                `);
+                            }
+                        });
+                        console.log("Mappa Satellitare aggiornata con successo.");
+                    }
+                })
+                .catch(e => console.log("In attesa di nuovi passaggi o file non ancora modificato:", e));
         }
 
-        // Carica Punti Utente da Firebase (Legge la stringa Base64 istantanea)
-        async function caricaSegnalazioniUtenti() {
-            try {
-                const querySnapshot = await getDocs(collection(db, "segnalazioni"));
+        // 2. GESTIONE SEGNALAZIONI IN TEMPO REALE (Firebase onSnapshot)
+        function attivaAscoltoSegnalazioni() {
+            // onSnapshot rimane in ascolto perpetuo. Se il database cambia, riesegue questa funzione istantaneamente
+            onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
+                layerUtenti.clearLayers(); // Pulisce i vecchi punti utente sulla mappa
+                
                 querySnapshot.forEach((doc) => {
                     const dati = doc.data();
                     let stringaDms = dati.dms ? `<b>Coordinate DMS:</b> ${dati.dms}<br>` : '';
                     let stringaCombustibile = dati.combustibile ? `<b>Vegetazione:</b> ${dati.combustibile}<br>` : '';
-                    
-                    // La sorgente dell'immagine legge direttamente la stringa salvata nel documento di testo
                     let bloccoFoto = dati.fotoBase64 ? `<div style="margin-top:8px; text-align:center;"><img src="${dati.fotoBase64}" style="width:100%; max-height:130px; border-radius:4px; object-fit:cover; border:1px solid #ddd;"></div>` : '';
                     
                     let badgeStato = "";
@@ -361,7 +377,7 @@
                     
                     L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
                         radius: 7, fillColor: colorePunto, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.85
-                    }).addTo(map).bindPopup(`
+                    }).addTo(layerUtenti).bindPopup(`
                         ${badgeStato}
                         ${stringaDms}
                         ${stringaCombustibile}
@@ -371,10 +387,13 @@
                         ${bloccoFoto}
                     `);
                 });
-            } catch (e) { console.error("Errore database: ", e); }
+                console.log("Livello segnalazioni sul campo sincronizzato in tempo reale.");
+            }, (error) => {
+                console.error("Errore sincronizzazione live: ", error);
+            });
         }
 
-        // OTTIMIZZAZIONE AGGRESSIVA: Riduzione a 800px e qualità 70% in formato stringa di testo
+        // Funzione per comprimere in Base64
         function comprimiInBase64(file, maxWidth, maxHeight, quality) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -404,7 +423,6 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        // Genera direttamente una stringa ultra-leggera senza passare dallo storage dei file
                         const base64String = canvas.toDataURL('image/jpeg', quality);
                         resolve(base64String);
                     };
@@ -413,13 +431,12 @@
             });
         }
 
-        // Fetch file locale NASA
-        fetch('incendi.json')
-            .then(response => response.json())
-            .then(data => { if (data && data.length > 0) disegnaPuntiNasa(data); })
-            .catch(e => console.log("Nessun dato NASA pronto:", e));
-
-        caricaSegnalazioniUtenti();
+        // --- AVVIO E LIVELLO TIMER DI AGGIORNAMENTO ---
+        aggiornaDatiSatellite();      // Esegui subito al caricamento iniziale
+        attivaAscoltoSegnalazioni();  // Attiva subito l'ascolto real-time di Firebase
+        
+        // Controlla il file del satellite in background ogni 5 minuti (300000 millisecondi)
+        setInterval(aggiornaDatiSatellite, 300000);
 
         // Controllo stato login
         onAuthStateChanged(auth, async (user) => {
@@ -467,7 +484,6 @@
             } catch (error) { alert("Errore: " + error.message); }
         };
 
-        // Invio ultra-rapido a canale unico (solo Firestore)
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
@@ -501,12 +517,9 @@
             const statoImpostato = ruoloUtenteLoggato === "volontario" ? "Validata" : "In attesa di validazione operativa";
 
             try {
-                // Genera la stringa compressa ad alta velocità (Risoluzione ottimizzata a 800px, qualità 70%)
                 const stringaFotoOttimizzata = await comprimiInBase64(fotoFile, 800, 800, 0.7);
-                
                 btnInvia.innerText = "Trasmissione dati in centrale...";
 
-                // Invio diretto a Firestore del testo generato, saltando i passaggi lenti dello storage di file
                 await addDoc(collection(db, "segnalazioni"), {
                     latitudine: latDecimale.toFixed(6),
                     longitudine: lonDecimale.toFixed(6),
@@ -519,9 +532,23 @@
                     data: new Date().toISOString()
                 });
 
-                alert("Segnalazione trasmessa istantaneamente in centrale!");
+                alert("Segnalazione trasmessa istantaneamente!");
                 chiudiFinestra();
-                location.reload();
+                
+                // NOTA: Abbiamo rimosso location.reload() perché la mappa si aggiorna da sola grazie a onSnapshot!
+                // Puliamo solo i campi del modulo per la prossima segnalazione
+                document.getElementById('latGradi').value = '';
+                document.getElementById('latPrimi').value = '';
+                document.getElementById('latSecondi').value = '';
+                document.getElementById('lonGradi').value = '';
+                document.getElementById('lonPrimi').value = '';
+                document.getElementById('lonSecondi').value = '';
+                document.getElementById('segnalaNote').value = '';
+                document.getElementById('segnalaFoto').value = '';
+                document.getElementById('segnalaCombustibile').value = 'Non specificato';
+                
+                btnInvia.innerText = "Invia Segnalazione Operativa";
+                btnInvia.disabled = false;
 
             } catch (e) { 
                 alert("Errore trasmissione: " + e.message); 
@@ -547,4 +574,4 @@
         };
     </script>
 </body>
-</html>-
+</html>
