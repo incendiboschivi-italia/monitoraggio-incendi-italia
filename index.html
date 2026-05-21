@@ -211,6 +211,11 @@
                 </div>
             </div>
 
+            <div class="gruppo-coordinate">
+                <label>Temperatura Stimata del Fronte Fuoco (°C)</label>
+                <input type="number" id="segnalaTemperatura" placeholder="Es: 450 o 800" min="0" max="1500" style="margin-bottom:0;">
+            </div>
+
             <textarea id="segnalaNote" placeholder="Note operative (es. Fumo denso, colonna visibile da...)" rows="3"></textarea>
             <button onclick="inviaSegnalazione()">Invia Segnalazione Operativa</button>
         </div>
@@ -237,7 +242,6 @@
           appId: "1:806160880982:web:fd4747fd0841ad5066f2f7"
         };
 
-        // Inizializza Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -306,15 +310,25 @@
         };
         riskControl.addTo(map);
 
-        // Disegna Punti NASA
+        // Disegna Punti NASA con conversione automatica Temperatura da Kelvin a Celsius
         function disegnaPuntiNasa(punti) {
             punti.forEach(ponto => {
                 if (ponto.latitude && ponto.longitude) {
+                    // Cerca il valore della temperatura nei canali infrarossi del file JSON (solitamente 'brightness' o 'bright_ti1')
+                    let rawKelvin = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
+                    let stringaTemperatura = 'N/D';
+                    
+                    if (rawKelvin) {
+                        let celsius = parseFloat(rawKelvin) - 273.15;
+                        stringaTemperatura = `${celsius.toFixed(1)} °C`;
+                    }
+
                     L.circleMarker([parseFloat(ponto.latitude), parseFloat(ponto.longitude)], {
                         radius: 6, fillColor: "#ff1a1a", color: "#ff8888", weight: 1.5, opacity: 0.9, fillOpacity: 0.75
                     }).addTo(map).bindPopup(`
                         <strong>Satellite NASA FIRMS</strong><br><hr style="margin:5px 0; border-top:1px solid #eee;">
                         <b>Lat/Lon:</b> ${ponto.latitude}, ${ponto.longitude}<br>
+                        <b>Temperatura Infrarossi:</b> <span style="color:#e03131; font-weight:bold;">${stringaTemperatura}</span><br>
                         <b>Ora (UTC):</b> ${ponto.acq_time || 'N/D'}<br>
                         <b>Potenza (MW):</b> ${ponto.frp || 'N/D'}
                     `);
@@ -322,20 +336,21 @@
             });
         }
 
-        // Carica Punti Utente da Firebase (Gestisce i due ruoli e stati distinti)
+        // Carica Punti Utente da Firebase (Mostra anche il valore della temperatura in °C)
         async function caricaSegnalazioniUtenti() {
             try {
                 const querySnapshot = await getDocs(collection(db, "segnalazioni"));
                 querySnapshot.forEach((doc) => {
                     const dati = doc.data();
                     let stringaDms = dati.dms ? `<b>Coordinate DMS:</b> ${dati.dms}<br>` : '';
+                    let stringaTemp = dati.temperatura ? `<b>Temperatura fiamme:</b> <span style="color:#d9480f; font-weight:bold;">${dati.temperatura} °C</span><br>` : '<b>Temperatura fiamme:</b> Non rilevata<br>';
                     
                     let badgeStato = "";
-                    let colorePunto = "#fab005"; // Giallo standard per volontari
+                    let colorePunto = "#fab005"; 
 
                     if (dati.stato === "In attesa di validazione operativa") {
                         badgeStato = `<div style="background:#fff9db; color:#e67e22; border:1px solid #ffe066; padding:5px; border-radius:4px; font-weight:bold; font-size:10px; text-align:center; margin-bottom:8px;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>`;
-                        colorePunto = "#e67e22"; // Arancione per i cittadini da verificare
+                        colorePunto = "#e67e22"; 
                     } else {
                         badgeStato = `<div style="background:#ebfbee; color:#2b8a3e; border:1px solid #c3fae8; padding:5px; border-radius:4px; font-weight:bold; font-size:10px; text-align:center; margin-bottom:8px;">✅ SEGNALAZIONE VALIDATA</div>`;
                     }
@@ -345,6 +360,7 @@
                     }).addTo(map).bindPopup(`
                         ${badgeStato}
                         ${stringaDms}
+                        ${stringaTemp}
                         <b>Lat/Lon Decimale:</b> ${dati.latitudine}, ${dati.longitudine}<br>
                         <b>Note:</b> ${dati.note || 'Nessuna nota aggiuntiva'}<br>
                         <b>Inviato da:</b> ${dati.utente}
@@ -361,19 +377,17 @@
 
         caricaSegnalazioniUtenti();
 
-        // Controllo stato login e lettura RUOLO da Firebase
+        // Controllo stato login e lettura ruolo
         onAuthStateChanged(auth, async (user) => {
             const btnAzione = document.getElementById('btnAzione');
             if (user) {
                 utenteLoggato = user;
-                
-                // Recupera il ruolo salvato nel database per questo utente specifico
                 try {
                     const userDoc = await getDoc(doc(db, "utenti", user.uid));
                     if (userDoc.exists()) {
                         ruoloUtenteLoggato = userDoc.data().ruolo;
                     } else {
-                        ruoloUtenteLoggato = "cittadino"; // Fallback se non censito
+                        ruoloUtenteLoggato = "cittadino";
                     }
                 } catch(e) { ruoloUtenteLoggato = "cittadino"; }
 
@@ -401,7 +415,6 @@
                     const user = userCredential.user;
                     const ruoloScelto = document.getElementById('ruoloUtente').value;
 
-                    // Registra il ruolo dell'utente nella nuova tabella "utenti" su Firestore
                     await setDoc(doc(db, "utenti", user.uid), {
                         email: email,
                         ruolo: ruoloScelto
@@ -415,7 +428,7 @@
             } catch (error) { alert("Errore: " + error.message); }
         };
 
-        // Funzione di invio con categorizzazione automatica dello STATO
+        // Funzione di invio dati
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
@@ -425,6 +438,7 @@
             const lonP = parseFloat(document.getElementById('lonPrimi').value) || 0;
             const lonS = parseFloat(document.getElementById('lonSecondi').value) || 0;
             
+            const tempFiamme = document.getElementById('segnalaTemperatura').value;
             const note = document.getElementById('segnalaNote').value;
 
             if (!document.getElementById('latGradi').value || !document.getElementById('lonGradi').value) {
@@ -436,8 +450,6 @@
             const lonDecimale = lonG + (lonP / 60) + (lonS / 3600);
 
             const stringaDMS = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
-
-            // Logica cruciale: se l'utente loggato è un cittadino, lo stato va in verifica obbligatoria
             const statoImpostato = ruoloUtenteLoggato === "volontario" ? "Validata" : "In attesa di validazione operativa";
 
             try {
@@ -445,6 +457,7 @@
                     latitudine: latDecimale.toFixed(6),
                     longitudine: lonDecimale.toFixed(6),
                     dms: stringaDMS,
+                    temperatura: tempFiamme ? parseFloat(tempFiamme) : null,
                     note: note,
                     utente: utenteLoggato.email,
                     stato: statoImpostato,
@@ -469,8 +482,6 @@
             document.getElementById('titoloAuth').innerText = modalitaRegistrazione ? "Registra Nuovo Account" : "Accedi alla Piattaforma";
             document.getElementById('btnAuth').innerText = modalitaRegistrazione ? "Registrati" : "Accedi";
             document.getElementById('switchAuth').innerHTML = modalitaRegistrazione ? "Hai già un account? <span onclick='cambiaModalitaAuth()'>Accedi qui</span>" : "Non hai un account? <span onclick='cambiaModalitaAuth()'>Registrati qui</span>";
-            
-            // Mostra il selettore del ruolo SOLO in modalità registrazione
             document.getElementById('divRuolo').style.display = modalitaRegistrazione ? "block" : "none";
         };
     </script>
