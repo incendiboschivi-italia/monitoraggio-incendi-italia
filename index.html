@@ -267,7 +267,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const storage = getStorage(app); // Inizializzazione Cloud Storage
+        const storage = getStorage(app);
 
         let utenteLoggato = null;
         let ruoloUtenteLoggato = "cittadino"; 
@@ -340,7 +340,7 @@
             });
         }
 
-        // Carica Punti Utente da Firebase con visualizzazione dell'immagine caricata
+        // Carica Punti Utente da Firebase
         async function caricaSegnalazioniUtenti() {
             try {
                 const querySnapshot = await getDocs(collection(db, "segnalazioni"));
@@ -348,8 +348,6 @@
                     const dati = doc.data();
                     let stringaDms = dati.dms ? `<b>Coordinate DMS:</b> ${dati.dms}<br>` : '';
                     let stringaCombustibile = dati.combustibile ? `<b>Vegetazione:</b> ${dati.combustibile}<br>` : '';
-                    
-                    // Tag HTML per caricare la foto nel popup se presente nel database
                     let bloccoFoto = dati.fotoUrl ? `<div style="margin-top:8px; text-align:center;"><a href="${dati.fotoUrl}" target="_blank"><img src="${dati.fotoUrl}" style="width:100%; max-height:120px; border-radius:4px; object-fit:cover; border:1px solid #ddd;"></a><em style="font-size:9px; color:#777; display:block;">Clicca sulla foto per ingrandirla</em></div>` : '';
                     
                     let badgeStato = "";
@@ -375,6 +373,51 @@
                     `);
                 });
             } catch (e) { console.error("Errore database: ", e); }
+        }
+
+        // Funzione per comprimere e ridimensionare l'immagine lato client
+        function comprimiImmagine(file, maxWidth, maxHeight, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = function (event) {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = function () {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // Calcola le nuove proporzioni mantenendo il rapporto d'aspetto
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Converte il disegno del canvas in un Blob (file binario leggero) tipo JPEG compresso
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error("Errore durante la compressione della foto."));
+                            }
+                        }, 'image/jpeg', quality);
+                    };
+                };
+                reader.onerror = (e) => reject(e);
+            });
         }
 
         // Fetch file locale NASA
@@ -422,7 +465,6 @@
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     const user = userCredential.user;
                     const ruoloScelto = document.getElementById('ruoloUtente').value;
-
                     await setDoc(doc(db, "utenti", user.uid), { email: email, ruolo: ruoloScelto });
                     alert("Registrazione completata!");
                 } else {
@@ -432,7 +474,7 @@
             } catch (error) { alert("Errore: " + error.message); }
         };
 
-        // Invio con upload asincrono e blocco obbligatorio della foto
+        // Invio con compressione asincrona integrata
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
@@ -444,8 +486,6 @@
             
             const tipoCombustibile = document.getElementById('segnalaCombustibile').value;
             const note = document.getElementById('segnalaNote').value;
-            
-            // Gestione del file input
             const fotoFile = document.getElementById('segnalaFoto').files[0];
 
             if (!document.getElementById('latGradi').value || !document.getElementById('lonGradi').value) {
@@ -453,15 +493,14 @@
                 return;
             }
 
-            // BLOCCO DI CONTROLLO: Se la foto manca, ferma tutto
             if (!fotoFile) {
-                alert("❌ Errore Operativo: È obbligatorio scattare o caricare una foto del fronte fuoco per convalidare la segnalazione!");
+                alert("❌ Errore Operativo: È obbligatorio caricare una foto del fronte fuoco!");
                 return;
             }
 
-            // Disabilita il bottone per evitare invii multipli durante il caricamento della foto
+            // Cambia stato del bottone segnalando l'ottimizzazione in corso
             const btnInvia = document.getElementById('btnInviaSegnalazione');
-            btnInvia.innerText = "Caricamento Immagine in corso...";
+            btnInvia.innerText = "Compressione immagine lato client...";
             btnInvia.disabled = true;
 
             const latDecimale = latG + (latP / 60) + (latS / 3600);
@@ -470,16 +509,18 @@
             const statoImpostato = ruoloUtenteLoggato === "volontario" ? "Validata" : "In attesa di validazione operativa";
 
             try {
-                // 1. Carica il file immagine su Firebase Storage usando un nome univoco (Timestamp)
-                const nomeFileUnivoco = `incendio_${Date.now()}_${fotoFile.name}`;
+                // Esegue la compressione: max 1280px di larghezza/altezza, qualità 80%
+                const fotoCompressaBlob = await comprimiImmagine(fotoFile, 1280, 1280, 0.8);
+                
+                btnInvia.innerText = "Invio file alleggerito a Firebase...";
+
+                // Genera il riferimento e invia il blob leggero (.jpg)
+                const nomeFileUnivoco = `incendio_${Date.now()}.jpg`;
                 const storageRef = ref(storage, 'foto_incendi/' + nomeFileUnivoco);
                 
-                const snapshot = await uploadBytes(storageRef, fotoFile);
-                
-                // 2. Recupera l'URL pubblico dell'immagine caricata
+                const snapshot = await uploadBytes(storageRef, fotoCompressaBlob);
                 const urlImmagineInCloud = await getDownloadURL(snapshot.ref);
 
-                // 3. Salva la segnalazione su Firestore includendo l'URL della foto
                 await addDoc(collection(db, "segnalazioni"), {
                     latitudine: latDecimale.toFixed(6),
                     longitudine: lonDecimale.toFixed(6),
@@ -488,11 +529,11 @@
                     note: note,
                     utente: utenteLoggato.email,
                     stato: statoImpostato,
-                    fotoUrl: urlImmagineInCloud, // Salvato nel db
+                    fotoUrl: urlImmagineInCloud,
                     data: new Date().toISOString()
                 });
 
-                alert("Segnalazione inviata con successo completa di documentazione fotografica!");
+                alert("Segnalazione inviata istantaneamente!");
                 chiudiFinestra();
                 location.reload();
 
