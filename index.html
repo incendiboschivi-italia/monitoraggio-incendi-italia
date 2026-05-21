@@ -27,7 +27,7 @@
         }
         .btn-controllo:hover { background: #c92a2a; }
 
-        /* Finestra Modale in sovrimpressione (Popup centro schermo) */
+        /* Finestra Modale in sovrimpressione */
         .modal {
             display: none;
             position: fixed;
@@ -40,7 +40,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.4);
             width: 90%;
-            max-width: 400px;
+            max-width: 420px;
         }
         .modal h3 { color: #c92a2a; margin-bottom: 15px; }
         .modal input, .modal textarea {
@@ -50,6 +50,31 @@
             border: 1px solid #ced4da;
             border-radius: 4px;
         }
+        
+        /* Layout per i blocchi DMS */
+        .gruppo-coordinate {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid #e9ecef;
+        }
+        .gruppo-coordinate label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #495057;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .inputs-dms {
+            display: flex;
+            gap: 6px;
+        }
+        .inputs-dms input {
+            margin-bottom: 0 !important;
+            text-align: center;
+        }
+
         .modal button {
             background: #2b8a3e;
             color: white;
@@ -76,7 +101,6 @@
         .modal p { font-size: 13px; text-align: center; margin-top: 10px; }
         .modal p span { color: #1c7ed6; cursor: pointer; text-decoration: underline; }
 
-        /* Sfondo oscurato quando la modale è aperta */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -85,7 +109,7 @@
             z-index: 1999;
         }
 
-        /* Legenda personalizzata */
+        /* Legenda */
         .info.legend { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 280px; }
         .legend h4 { color: #c92a2a; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
         .legend p { font-size: 12px; color: #495057; line-height: 1.4; margin-bottom: 5px; }
@@ -111,10 +135,27 @@
 
         <div id="sezioneSegnala" style="display: none;">
             <h3>Segnala Avvistamento Incendio</h3>
-            <p style="font-size:12px; color:#666; margin-bottom:10px;">Inserisci le coordinate esatte del focolaio o del fumo.</p>
-            <input type="number" step="any" id="segnalaLat" placeholder="Latitudine (es. 43.93)">
-            <input type="number" step="any" id="segnalaLon" placeholder="Longitudine (es. 10.91)">
-            <textarea id="segnalaNote" placeholder="Note (es. Fumo denso, fronte fuoco 50mt...)" rows="3"></textarea>
+            <p style="font-size:12px; color:#666; margin-bottom:12px;">Inserisci le coordinate geografiche in Gradi, Primi e Secondi.</p>
+            
+            <div class="gruppo-coordinate">
+                <label>Latitudine Nord (N)</label>
+                <div class="inputs-dms">
+                    <input type="number" id="latGradi" placeholder="Gradi (°)" min="0" max="90">
+                    <input type="number" id="latPrimi" placeholder="Primi (')" min="0" max="59">
+                    <input type="number" id="latSecondi" placeholder="Secondi (\")" step="any" min="0" max="59.99">
+                </div>
+            </div>
+
+            <div class="gruppo-coordinate">
+                <label>Longitudine Est (E)</label>
+                <div class="inputs-dms">
+                    <input type="number" id="lonGradi" placeholder="Gradi (°)" min="0" max="180">
+                    <input type="number" id="lonPrimi" placeholder="Primi (')" min="0" max="59">
+                    <input type="number" id="lonSecondi" placeholder="Secondi (\")" step="any" min="0" max="59.99">
+                </div>
+            </div>
+
+            <textarea id="segnalaNote" placeholder="Note operative (es. Fumo denso, colonna visibile da...)" rows="3"></textarea>
             <button onclick="inviaSegnalazione()">Invia Segnalazione Operativa</button>
         </div>
 
@@ -130,7 +171,7 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Le tue credenziali reali integrate
+        // Le tue credenziali Firebase reali
         const firebaseConfig = {
           apiKey: "AIzaSyCtpbSPhgWoFIvAjGVsboBayl9oJjzDjy4",
           authDomain: "monitoraggio-incendi-v1.firebaseapp.com",
@@ -156,7 +197,7 @@
         const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [mappaScura] });
         L.control.layers({ "Mappa Scura": mappaScura, "Vista Satellitare": mappaSatellitare, "Vista Topografica": mappaTopografica }).addTo(map);
 
-        // Nuova Legenda
+        // Legenda
         const legend = L.control({ position: 'bottomleft' });
         legend.onAdd = function () {
             const div = L.DomUtil.create('div', 'info legend');
@@ -186,17 +227,20 @@
             });
         }
 
-        // Carica Punti Utente da Firebase
+        // Carica Punti Utente da Firebase (Mostra anche il formato DMS se presente)
         async function caricaSegnalazioniUtenti() {
             try {
                 const querySnapshot = await getDocs(collection(db, "segnalazioni"));
                 querySnapshot.forEach((doc) => {
                     const dati = doc.data();
+                    let stringaDms = dati.dms ? `<b>Coordinate DMS:</b> ${dati.dms}<br>` : '';
+                    
                     L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
                         radius: 7, fillColor: "#fab005", color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.85
                     }).addTo(map).bindPopup(`
                         <strong style="color:#d9480f;">Segnalazione da Volontario</strong><br><hr style="margin:5px 0; border-top:1px solid #eee;">
-                        <b>Posizione:</b> ${dati.latitudine}, ${dati.longitudine}<br>
+                        ${stringaDms}
+                        <b>Lat/Lon Decimale:</b> ${dati.latitudine}, ${dati.longitudine}<br>
                         <b>Note:</b> ${dati.note || 'Nessuna nota aggiuntiva'}<br>
                         <b>Segnalato da:</b> ${dati.utente}
                     `);
@@ -245,20 +289,43 @@
             } catch (error) { alert("Errore: " + error.message); }
         };
 
+        // Funzione di invio con conversione matematica interna DMS -> Decimale
         window.inviaSegnalazione = async function() {
-            const lat = document.getElementById('segnalaLat').value;
-            const lon = document.getElementById('segnalaLon').value;
+            // Lettura valori Latitudine
+            const latG = parseFloat(document.getElementById('latGradi').value) || 0;
+            const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
+            const latS = parseFloat(document.getElementById('latSecondi').value) || 0;
+
+            // Lettura valori Longitudine
+            const lonG = parseFloat(document.getElementById('lonGradi').value) || 0;
+            const lonP = parseFloat(document.getElementById('lonPrimi').value) || 0;
+            const lonS = parseFloat(document.getElementById('lonSecondi').value) || 0;
+            
             const note = document.getElementById('segnalaNote').value;
-            if(!lat || !lon) { alert("Latitudine e Longitudine obbligatorie!"); return; }
+
+            // Controllo validità (almeno il valore dei gradi deve essere inserito)
+            if (!document.getElementById('latGradi').value || !document.getElementById('lonGradi').value) {
+                alert("I Gradi di Latitudine e Longitudine sono obbligatori!");
+                return;
+            }
+
+            // FORMULA: Decimale = Gradi + (Primi / 60) + (Secondi / 3600)
+            const latDecimale = latG + (latP / 60) + (latS / 3600);
+            const lonDecimale = lonG + (lonP / 60) + (lonS / 3600);
+
+            // Costruiamo la stringa leggibile in DMS da mostrare nei popup
+            const stringaDMS = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
+
             try {
                 await addDoc(collection(db, "segnalazioni"), {
-                    latitudine: lat,
-                    longitudine: lon,
+                    latitudine: latDecimale.toFixed(6),
+                    longitudine: lonDecimale.toFixed(6),
+                    dms: stringaDMS,
                     note: note,
                     utente: utenteLoggato.email,
                     data: new Date().toISOString()
                 });
-                alert("Segnalazione inviata!");
+                alert("Segnalazione inviata con successo in centrale!");
                 chiudiFinestra();
                 location.reload();
             } catch (e) { alert("Errore invio: " + e.message); }
