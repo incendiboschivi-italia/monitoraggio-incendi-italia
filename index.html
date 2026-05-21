@@ -109,7 +109,6 @@
             z-index: 1999;
         }
 
-        /* Stile specifico per il caricamento file */
         .input-file-label {
             display: block;
             font-size: 12px;
@@ -252,7 +251,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         // Credenziali Firebase
         const firebaseConfig = {
@@ -267,7 +265,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const storage = getStorage(app);
 
         let utenteLoggato = null;
         let ruoloUtenteLoggato = "cittadino"; 
@@ -340,7 +337,7 @@
             });
         }
 
-        // Carica Punti Utente da Firebase
+        // Carica Punti Utente da Firebase (Legge la stringa Base64 istantanea)
         async function caricaSegnalazioniUtenti() {
             try {
                 const querySnapshot = await getDocs(collection(db, "segnalazioni"));
@@ -348,7 +345,9 @@
                     const dati = doc.data();
                     let stringaDms = dati.dms ? `<b>Coordinate DMS:</b> ${dati.dms}<br>` : '';
                     let stringaCombustibile = dati.combustibile ? `<b>Vegetazione:</b> ${dati.combustibile}<br>` : '';
-                    let bloccoFoto = dati.fotoUrl ? `<div style="margin-top:8px; text-align:center;"><a href="${dati.fotoUrl}" target="_blank"><img src="${dati.fotoUrl}" style="width:100%; max-height:120px; border-radius:4px; object-fit:cover; border:1px solid #ddd;"></a><em style="font-size:9px; color:#777; display:block;">Clicca sulla foto per ingrandirla</em></div>` : '';
+                    
+                    // La sorgente dell'immagine legge direttamente la stringa salvata nel documento di testo
+                    let bloccoFoto = dati.fotoBase64 ? `<div style="margin-top:8px; text-align:center;"><img src="${dati.fotoBase64}" style="width:100%; max-height:130px; border-radius:4px; object-fit:cover; border:1px solid #ddd;"></div>` : '';
                     
                     let badgeStato = "";
                     let colorePunto = "#fab005"; 
@@ -375,8 +374,8 @@
             } catch (e) { console.error("Errore database: ", e); }
         }
 
-        // Funzione per comprimere e ridimensionare l'immagine lato client
-        function comprimiImmagine(file, maxWidth, maxHeight, quality) {
+        // OTTIMIZZAZIONE AGGRESSIVA: Riduzione a 800px e qualità 70% in formato stringa di testo
+        function comprimiInBase64(file, maxWidth, maxHeight, quality) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -388,7 +387,6 @@
                         let width = img.width;
                         let height = img.height;
 
-                        // Calcola le nuove proporzioni mantenendo il rapporto d'aspetto
                         if (width > height) {
                             if (width > maxWidth) {
                                 height *= maxWidth / width;
@@ -406,14 +404,9 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
-                        // Converte il disegno del canvas in un Blob (file binario leggero) tipo JPEG compresso
-                        canvas.toBlob((blob) => {
-                            if (blob) {
-                                resolve(blob);
-                            } else {
-                                reject(new Error("Errore durante la compressione della foto."));
-                            }
-                        }, 'image/jpeg', quality);
+                        // Genera direttamente una stringa ultra-leggera senza passare dallo storage dei file
+                        const base64String = canvas.toDataURL('image/jpeg', quality);
+                        resolve(base64String);
                     };
                 };
                 reader.onerror = (e) => reject(e);
@@ -474,7 +467,7 @@
             } catch (error) { alert("Errore: " + error.message); }
         };
 
-        // Invio con compressione asincrona integrata
+        // Invio ultra-rapido a canale unico (solo Firestore)
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
@@ -498,9 +491,8 @@
                 return;
             }
 
-            // Cambia stato del bottone segnalando l'ottimizzazione in corso
             const btnInvia = document.getElementById('btnInviaSegnalazione');
-            btnInvia.innerText = "Compressione immagine lato client...";
+            btnInvia.innerText = "Elaborazione immediata foto...";
             btnInvia.disabled = true;
 
             const latDecimale = latG + (latP / 60) + (latS / 3600);
@@ -509,18 +501,12 @@
             const statoImpostato = ruoloUtenteLoggato === "volontario" ? "Validata" : "In attesa di validazione operativa";
 
             try {
-                // Esegue la compressione: max 1280px di larghezza/altezza, qualità 80%
-                const fotoCompressaBlob = await comprimiImmagine(fotoFile, 1280, 1280, 0.8);
+                // Genera la stringa compressa ad alta velocità (Risoluzione ottimizzata a 800px, qualità 70%)
+                const stringaFotoOttimizzata = await comprimiInBase64(fotoFile, 800, 800, 0.7);
                 
-                btnInvia.innerText = "Invio file alleggerito a Firebase...";
+                btnInvia.innerText = "Trasmissione dati in centrale...";
 
-                // Genera il riferimento e invia il blob leggero (.jpg)
-                const nomeFileUnivoco = `incendio_${Date.now()}.jpg`;
-                const storageRef = ref(storage, 'foto_incendi/' + nomeFileUnivoco);
-                
-                const snapshot = await uploadBytes(storageRef, fotoCompressaBlob);
-                const urlImmagineInCloud = await getDownloadURL(snapshot.ref);
-
+                // Invio diretto a Firestore del testo generato, saltando i passaggi lenti dello storage di file
                 await addDoc(collection(db, "segnalazioni"), {
                     latitudine: latDecimale.toFixed(6),
                     longitudine: lonDecimale.toFixed(6),
@@ -529,16 +515,16 @@
                     note: note,
                     utente: utenteLoggato.email,
                     stato: statoImpostato,
-                    fotoUrl: urlImmagineInCloud,
+                    fotoBase64: stringaFotoOttimizzata, 
                     data: new Date().toISOString()
                 });
 
-                alert("Segnalazione inviata istantaneamente!");
+                alert("Segnalazione trasmessa istantaneamente in centrale!");
                 chiudiFinestra();
                 location.reload();
 
             } catch (e) { 
-                alert("Errore invio: " + e.message); 
+                alert("Errore trasmissione: " + e.message); 
                 btnInvia.innerText = "Invia Segnalazione Operativa";
                 btnInvia.disabled = false;
             }
@@ -561,4 +547,4 @@
         };
     </script>
 </body>
-</html>
+</html>-
