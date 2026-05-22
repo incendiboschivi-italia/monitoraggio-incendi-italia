@@ -307,6 +307,29 @@
             document.getElementById('countNonVerificati').innerText = totaliFirebaseNonVerificati;
         }
 
+        // --- BLACKLIST AREE INDUSTRIALI ---
+        // Selezioniamo le principali fonti di "falsi positivi" termici in Italia
+        const blacklistIndustrie = [
+            { nome: "Polo Siderurgico ILVA", lat: 40.50, lon: 17.22, raggioKm: 5 },
+            { nome: "Raffineria Saras Sarroch", lat: 39.08, lon: 9.02, raggioKm: 4 },
+            { nome: "Polo Petrolchimico Priolo", lat: 37.16, lon: 15.19, raggioKm: 5 },
+            { nome: "Raffineria di Milazzo", lat: 38.21, lon: 15.26, raggioKm: 3 },
+            { nome: "Raffineria Sannazzaro (ENI)", lat: 45.09, lon: 8.90, raggioKm: 3 },
+            { nome: "Raffineria API Falconara", lat: 43.63, lon: 13.36, raggioKm: 2 },
+            { nome: "Raffineria ENI Livorno", lat: 43.59, lon: 10.33, raggioKm: 3 }
+        ];
+
+        // Formula matematica per calcolare la distanza in km tra due coordinate
+        function getDistanzaKm(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Raggio della Terra in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
         function aggiornaDatiSatellite() {
             fetch('incendi.json?t=' + Date.now())
                 .then(response => response.json())
@@ -317,7 +340,25 @@
                     if (punti && punti.length > 0) {
                         punti.forEach(ponto => {
                             if (ponto.latitude && ponto.longitude) {
-                                totaliNasa++; // Incrementa per ogni rilevamento satellitare valido
+                                
+                                // 1. Filtro Nativo: Se il dato NASA dichiara esplicitamente che NON è vegetazione (type 0), ignoralo
+                                if (ponto.type !== undefined && parseInt(ponto.type) !== 0) return;
+
+                                // 2. Filtro Geografico: Controllo Blacklist Industrie
+                                let inZonaIndustriale = false;
+                                for(let ind of blacklistIndustrie) {
+                                    let dist = getDistanzaKm(parseFloat(ponto.latitude), parseFloat(ponto.longitude), ind.lat, ind.lon);
+                                    if(dist <= ind.raggioKm) {
+                                        inZonaIndustriale = true;
+                                        break; // Ferma il ciclo, abbiamo capito che è un'industria
+                                    }
+                                }
+                                
+                                // Se è in zona industriale, interrompiamo la lettura di questo punto e passiamo al prossimo
+                                if (inZonaIndustriale) return; 
+
+                                // Se il punto supera i controlli, è considerato "valido" e viene disegnato
+                                totaliNasa++; 
                                 let temp = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
                                 let celsius = temp ? (parseFloat(temp) - 273.15).toFixed(1) + " °C" : 'N/D';
                                 L.circleMarker([parseFloat(ponto.latitude), parseFloat(ponto.longitude)], {
