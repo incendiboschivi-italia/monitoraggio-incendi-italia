@@ -265,6 +265,28 @@
         let totaliFirebaseVerificati = 0;
         let totaliFirebaseNonVerificati = 0;
 
+        // --- BLACKLIST FONTI DI CALORE INDUSTRIALI / RAFFINERIE ---
+        const blacklistIndustrie = [
+            { nome: "Polo Siderurgico ILVA", lat: 40.50, lon: 17.22, raggioKm: 5 },
+            { nome: "Raffineria Saras Sarroch", lat: 39.08, lon: 9.02, raggioKm: 4 },
+            { nome: "Polo Petrolchimico Priolo", lat: 37.16, lon: 15.19, raggioKm: 5 },
+            { nome: "Raffineria di Milazzo", lat: 38.21, lon: 15.26, raggioKm: 3 },
+            { nome: "Raffineria Sannazzaro (ENI)", lat: 45.09, lon: 8.90, raggioKm: 3 },
+            { nome: "Raffineria API Falconara", lat: 43.63, lon: 13.36, raggioKm: 2 },
+            { nome: "Raffineria ENI Livorno", lat: 43.59, lon: 10.33, raggioKm: 3 }
+        ];
+
+        // Formula di Haversine per calcolare la distanza in km tra due punti sulla Terra
+        function getDistanzaKm(lat1, lon1, lat2, lon2) {
+            const R = 6371; 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
         const mappaScura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO', maxZoom: 20 });
         const mappaSatellitare = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
         const mappaTopografica = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenTopoMap', maxZoom: 17 });
@@ -300,36 +322,14 @@
         };
         riskControl.addTo(map);
 
-        // Funzione per aggiornare l'interfaccia grafica dei contatori sommati
+        // Renderizzatore unico dei contatori
         function renderizzaContatori() {
             const sommaVerificati = totaliFirebaseVerificati + totaliNasa;
             document.getElementById('countVerificati').innerText = sommaVerificati;
             document.getElementById('countNonVerificati').innerText = totaliFirebaseNonVerificati;
         }
 
-        // --- BLACKLIST AREE INDUSTRIALI ---
-        // Selezioniamo le principali fonti di "falsi positivi" termici in Italia
-        const blacklistIndustrie = [
-            { nome: "Polo Siderurgico ILVA", lat: 40.50, lon: 17.22, raggioKm: 5 },
-            { nome: "Raffineria Saras Sarroch", lat: 39.08, lon: 9.02, raggioKm: 4 },
-            { nome: "Polo Petrolchimico Priolo", lat: 37.16, lon: 15.19, raggioKm: 5 },
-            { nome: "Raffineria di Milazzo", lat: 38.21, lon: 15.26, raggioKm: 3 },
-            { nome: "Raffineria Sannazzaro (ENI)", lat: 45.09, lon: 8.90, raggioKm: 3 },
-            { nome: "Raffineria API Falconara", lat: 43.63, lon: 13.36, raggioKm: 2 },
-            { nome: "Raffineria ENI Livorno", lat: 43.59, lon: 10.33, raggioKm: 3 }
-        ];
-
-        // Formula matematica per calcolare la distanza in km tra due coordinate
-        function getDistanzaKm(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Raggio della Terra in km
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
+        // AGGIORNAMENTO DATI NASA CON FILTRAGGIO INDUSTRIALE INCLUSO
         function aggiornaDatiSatellite() {
             fetch('incendi.json?t=' + Date.now())
                 .then(response => response.json())
@@ -341,23 +341,22 @@
                         punti.forEach(ponto => {
                             if (ponto.latitude && ponto.longitude) {
                                 
-                                // 1. Filtro Nativo: Se il dato NASA dichiara esplicitamente che NON è vegetazione (type 0), ignoralo
+                                // Filtro Nativo NASA (Se presente la proprietà, esclude i tipi non di vegetazione)
                                 if (ponto.type !== undefined && parseInt(ponto.type) !== 0) return;
 
-                                // 2. Filtro Geografico: Controllo Blacklist Industrie
+                                // Filtro Geografico tramite Blacklist Aree Industriali
                                 let inZonaIndustriale = false;
                                 for(let ind of blacklistIndustrie) {
                                     let dist = getDistanzaKm(parseFloat(ponto.latitude), parseFloat(ponto.longitude), ind.lat, ind.lon);
                                     if(dist <= ind.raggioKm) {
                                         inZonaIndustriale = true;
-                                        break; // Ferma il ciclo, abbiamo capito che è un'industria
+                                        break;
                                     }
                                 }
                                 
-                                // Se è in zona industriale, interrompiamo la lettura di questo punto e passiamo al prossimo
+                                // Blocca il disegno se il punto cade vicino a una raffineria/impianto siderurgico
                                 if (inZonaIndustriale) return; 
 
-                                // Se il punto supera i controlli, è considerato "valido" e viene disegnato
                                 totaliNasa++; 
                                 let temp = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
                                 let celsius = temp ? (parseFloat(temp) - 273.15).toFixed(1) + " °C" : 'N/D';
@@ -375,6 +374,7 @@
                 });
         }
 
+        // ASCOLTO FIREBASE CON POPUP ESTESO RIPRISTINATO E AGGIORNAMENTO CONTATORI
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
