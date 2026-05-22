@@ -12,6 +12,7 @@
         body, html { height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
         #map { height: 100%; width: 100%; background: #242424; }
         
+        /* Bottone Controllo Principale */
         .btn-controllo {
             position: absolute;
             top: 80px;
@@ -28,6 +29,40 @@
             transition: background 0.2s ease;
         }
 
+        /* Pannello Contatori in Alto a Sinistra */
+        .box-contatori {
+            position: absolute;
+            top: 135px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 160px;
+            border: 1px solid #dee2e6;
+        }
+        .contatore-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .badge-conteggio {
+            padding: 2px 8px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 800;
+            font-size: 11px;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        /* Finestra Modale */
         .modal {
             display: none;
             position: fixed;
@@ -103,8 +138,10 @@
         .r-alto { background-color: #f76707; }
         .r-estremo { background-color: #e03131; }
 
+        /* Responsive Mobile */
         @media (max-width: 600px) {
             .btn-controllo { top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; text-align: center; font-size: 16px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+            .box-contatori { top: 80px; left: 10px; min-width: 140px; padding: 8px 10px; } /* Si alza perché il bottone scende in basso */
             .inputs-dms input { padding: 6px 2px; font-size: 12px; }
             .info.legend { padding: 10px; max-width: 200px; margin-bottom: 80px; }
             .legend h4 { font-size: 12px; margin-bottom: 5px; }
@@ -117,6 +154,17 @@
 <body>
 
     <button class="btn-controllo" id="btnAzione" onclick="apriFinestra()">🔓 Accedi / Registrati</button>
+
+    <div class="box-contatori">
+        <div class="contatore-item" style="color: #2b8a3e;">
+            <span>✅ Verificati:</span>
+            <span id="countVerificati" class="badge-conteggio" style="background: #2b8a3e;">0</span>
+        </div>
+        <div class="contatore-item" style="color: #e67e22;">
+            <span>⚠️ Da Verificare:</span>
+            <span id="countNonVerificati" class="badge-conteggio" style="background: #e67e22;">0</span>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="overlay" onclick="chiudiFinestra()"></div>
     <div class="modal" id="finestraModale">
@@ -266,23 +314,34 @@
                 }).catch(() => console.log("Nessun dato NASA."));
         }
 
+        // FUNZIONE ASCOLTO SEGNALAZIONI CON CONTEGGIO IN TEMPO REALE
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
+                
+                // Reset delle variabili di conteggio ad ogni aggiornamento
+                let contatoreVerificati = 0;
+                let contatoreNonVerificati = 0;
+
                 querySnapshot.forEach((doc) => {
                     const dati = doc.data();
                     
-                    // Immagine (se presente)
+                    // Incremento dei contatori in base allo stato nel database
+                    if (dati.stato === "Validata") {
+                        contatoreVerificati++;
+                    } else {
+                        contatoreNonVerificati++;
+                    }
+
+                    // Costruzione grafica del popup sulla mappa (Fedele alla tua immagine originale)
                     let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
                     
-                    // Badge di stato (Fedele alla tua immagine originale)
                     let badge = dati.stato === "In attesa di validazione operativa" 
                         ? `<div style="background:#fff9db; color:#e67e22; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #ffe066;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>`
                         : `<div style="background:#ebfbee; color:#2b8a3e; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #8ce99a;">✅ VALIDATA</div>`;
                     
                     let colore = dati.stato === "In attesa di validazione operativa" ? "#e67e22" : "#fab005";
                     
-                    // Costruzione dei dettagli operativi completi
                     let infoDettagliata = "";
                     if (dati.dms) infoDettagliata += `<span style="font-size:13px; line-height: 1.5;"><b>Coordinate DMS:</b> ${dati.dms}<br>`;
                     if (dati.combustibile) infoDettagliata += `<b>Vegetazione:</b> ${dati.combustibile}<br>`;
@@ -294,8 +353,13 @@
                         radius: 7, fillColor: colore, color: "#fff", weight: 2, fillOpacity: 0.85
                     }).addTo(layerUtenti).bindPopup(`${badge}${infoDettagliata}${img}`, { minWidth: 260 });
                 });
+
+                // Spinge i valori numerici aggiornati negli elementi HTML dei contatori
+                document.getElementById('countVerificati').innerText = contatoreVerificati;
+                document.getElementById('countNonVerificati').innerText = contatoreNonVerificati;
             });
         }
+
         function comprimiInBase64(file, maxW, maxH, quality) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -322,7 +386,7 @@
         attivaAscoltoSegnalazioni();
         setInterval(aggiornaDatiSatellite, 300000);
 
-        // ASCOLTATORE STATO UTENTE OTTIMIZZATO (CAMBIA TESTO E COLORE AL BOTTONE ESTERNO)
+        // ASCOLTATORE STATO UTENTE
         onAuthStateChanged(auth, async (user) => {
             const btn = document.getElementById('btnAzione');
             if (user) {
