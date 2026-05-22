@@ -265,15 +265,36 @@
         let totaliFirebaseVerificati = 0;
         let totaliFirebaseNonVerificati = 0;
 
-        // --- BLACKLIST FONTI DI CALORE INDUSTRIALI / RAFFINERIE ---
+        // --- BLACKLIST INTEGRALE FONTI DI CALORE INDUSTRIALI / RAFFINERIE D'ITALIA ---
         const blacklistIndustrie = [
-            { nome: "Polo Siderurgico ILVA", lat: 40.50, lon: 17.22, raggioKm: 5 },
-            { nome: "Raffineria Saras Sarroch", lat: 39.08, lon: 9.02, raggioKm: 4 },
-            { nome: "Polo Petrolchimico Priolo", lat: 37.16, lon: 15.19, raggioKm: 5 },
-            { nome: "Raffineria di Milazzo", lat: 38.21, lon: 15.26, raggioKm: 3 },
-            { nome: "Raffineria Sannazzaro (ENI)", lat: 45.09, lon: 8.90, raggioKm: 3 },
-            { nome: "Raffineria API Falconara", lat: 43.63, lon: 13.36, raggioKm: 2 },
-            { nome: "Raffineria ENI Livorno", lat: 43.59, lon: 10.33, raggioKm: 3 }
+            // Raffinerie e Petrolchimici Principali
+            { nome: "Polo Siderurgico ILVA (Taranto)", lat: 40.501, lon: 17.218, raggioKm: 5.0 },
+            { nome: "Raffineria Saras (Sarroch)", lat: 39.083, lon: 9.026, raggioKm: 4.5 },
+            { nome: "Polo Petrolchimico ISAB Gela", lat: 37.131, lon: 14.285, raggioKm: 4.5 },
+            { nome: "Polo Petrolchimico Priolo-Melilli (Siracusa)", lat: 37.159, lon: 15.188, raggioKm: 5.5 },
+            { nome: "Raffineria di Milazzo", lat: 38.212, lon: 15.259, raggioKm: 3.5 },
+            { nome: "Raffineria ENI Sannazzaro de' Burgondi", lat: 45.093, lon: 8.898, raggioKm: 3.5 },
+            { nome: "Raffineria API Falconara Marittima", lat: 43.635, lon: 13.364, raggioKm: 2.5 },
+            { nome: "Raffineria ENI Livorno", lat: 43.591, lon: 10.334, raggioKm: 3.0 },
+            { nome: "Raffineria ENI Taranto", lat: 40.485, lon: 17.205, raggioKm: 3.0 },
+            { nome: "Polo Petrolchimico di Porto Marghera (Venezia)", lat: 45.454, lon: 12.247, raggioKm: 4.0 },
+            { nome: "Polo Petrolchimico di Ferrara", lat: 44.862, lon: 11.572, raggioKm: 3.0 },
+            { nome: "Polo Petrolchimico di Mantova", lat: 45.148, lon: 10.825, raggioKm: 3.0 },
+            { nome: "Raffineria Sonatrach Augusta", lat: 37.234, lon: 15.203, raggioKm: 4.0 },
+            { nome: "Raffineria di Busalla (IP)", lat: 44.577, lon: 8.951, raggioKm: 2.0 },
+            { nome: "Raffineria di Trecate (SARPOM)", lat: 45.437, lon: 8.749, raggioKm: 3.5 },
+            { nome: "Centro Olio Val d'Agri ENI (Viggiano)", lat: 40.323, lon: 15.908, raggioKm: 2.5 },
+            { nome: "Centro Olio Tempa Rossa (Corleto Perticara)", lat: 40.404, lon: 16.058, raggioKm: 2.5 },
+            
+            // Grandi Acciaierie e Fonderie ad alta emissione termica
+            { nome: "Acciaierie Arvedi (Cremona)", lat: 45.114, lon: 10.038, raggioKm: 2.0 },
+            { nome: "Acciaierie di Terni (AST)", lat: 42.563, lon: 12.668, raggioKm: 2.5 },
+            { nome: "Polo Siderurgico Piombino", lat: 42.942, lon: 10.548, raggioKm: 3.0 },
+            { nome: "Acciaierie ABS (Cargnacco - Udine)", lat: 46.002, lon: 13.242, raggioKm: 2.0 },
+            { nome: "Acciaierie Pittini (Osoppo)", lat: 46.248, lon: 13.068, raggioKm: 2.0 },
+            { nome: "Ori Martin (Brescia)", lat: 45.556, lon: 10.222, raggioKm: 1.5 },
+            { nome: "Alfa Acciai (Brescia)", lat: 45.524, lon: 10.255, raggioKm: 1.5 },
+            { nome: "Feralpi Siderurgica (Lonato del Garda)", lat: 45.457, lon: 10.495, raggioKm: 1.5 }
         ];
 
         // Formula di Haversine per calcolare la distanza in km tra due punti sulla Terra
@@ -329,7 +350,7 @@
             document.getElementById('countNonVerificati').innerText = totaliFirebaseNonVerificati;
         }
 
-        // AGGIORNAMENTO DATI NASA CON FILTRAGGIO INDUSTRIALE INCLUSO
+        // AGGIORNAMENTO DATI NASA CON FILTRAGGIO INDUSTRIALE COMPLETO D'ITALIA
         function aggiornaDatiSatellite() {
             fetch('incendi.json?t=' + Date.now())
                 .then(response => response.json())
@@ -341,10 +362,10 @@
                         punti.forEach(ponto => {
                             if (ponto.latitude && ponto.longitude) {
                                 
-                                // Filtro Nativo NASA (Se presente la proprietà, esclude i tipi non di vegetazione)
+                                // Filtro Nativo NASA (Esclude i rilevamenti catalogati esplicitamente come non-vegetazione)
                                 if (ponto.type !== undefined && parseInt(ponto.type) !== 0) return;
 
-                                // Filtro Geografico tramite Blacklist Aree Industriali
+                                // Filtro Geografico tramite Blacklist Aree Industriali Estesa
                                 let inZonaIndustriale = false;
                                 for(let ind of blacklistIndustrie) {
                                     let dist = getDistanzaKm(parseFloat(ponto.latitude), parseFloat(ponto.longitude), ind.lat, ind.lon);
@@ -354,7 +375,7 @@
                                     }
                                 }
                                 
-                                // Blocca il disegno se il punto cade vicino a una raffineria/impianto siderurgico
+                                // Blocca il disegno e l'avanzamento dei contatori se rientra nel raggio di una struttura industriale
                                 if (inZonaIndustriale) return; 
 
                                 totaliNasa++; 
@@ -374,7 +395,7 @@
                 });
         }
 
-        // ASCOLTO FIREBASE CON POPUP ESTESO RIPRISTINATO E AGGIORNAMENTO CONTATORI
+        // ASCOLTO FIREBASE SEGNALAZIONI
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
@@ -515,7 +536,7 @@
             const latS = parseFloat(document.getElementById('latSecondi').value) || 0;
             const lonG = parseFloat(document.getElementById('lonGradi').value) || 0;
             const lonP = parseFloat(document.getElementById('lonPrimi').value) || 0;
-            const lonS = parseFloat(document.getElementById('lonSecondi').value) || 0;
+            const lonS = parseFloat(document.getElementById('lonSerecondi').value) || 0;
             
             const fotoFile = document.getElementById('segnalaFoto').files[0];
             if (!document.getElementById('latGradi').value || !document.getElementById('lonGradi').value) {
