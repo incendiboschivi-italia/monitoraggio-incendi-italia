@@ -141,7 +141,7 @@
         /* Responsive Mobile */
         @media (max-width: 600px) {
             .btn-controllo { top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; text-align: center; font-size: 16px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-            .box-contatori { top: 80px; left: 10px; min-width: 140px; padding: 8px 10px; } /* Si alza perché il bottone scende in basso */
+            .box-contatori { top: 80px; left: 10px; min-width: 140px; padding: 8px 10px; }
             .inputs-dms input { padding: 6px 2px; font-size: 12px; }
             .info.legend { padding: 10px; max-width: 200px; margin-bottom: 80px; }
             .legend h4 { font-size: 12px; margin-bottom: 5px; }
@@ -260,6 +260,11 @@
         let ruoloUtenteLoggato = "cittadino"; 
         let modalitaRegistrazione = false;
 
+        // Contatori globali per sincronizzare l'unione dei dati (Firebase + NASA)
+        let totaliNasa = 0;
+        let totaliFirebaseVerificati = 0;
+        let totaliFirebaseNonVerificati = 0;
+
         const mappaScura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO', maxZoom: 20 });
         const mappaSatellitare = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
         const mappaTopografica = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenTopoMap', maxZoom: 17 });
@@ -295,14 +300,24 @@
         };
         riskControl.addTo(map);
 
+        // Funzione per aggiornare l'interfaccia grafica dei contatori sommati
+        function renderizzaContatori() {
+            const sommaVerificati = totaliFirebaseVerificati + totaliNasa;
+            document.getElementById('countVerificati').innerText = sommaVerificati;
+            document.getElementById('countNonVerificati').innerText = totaliFirebaseNonVerificati;
+        }
+
         function aggiornaDatiSatellite() {
             fetch('incendi.json?t=' + Date.now())
                 .then(response => response.json())
                 .then(punti => {
+                    layerNasa.clearLayers();
+                    totaliNasa = 0; 
+                    
                     if (punti && punti.length > 0) {
-                        layerNasa.clearLayers();
                         punti.forEach(ponto => {
                             if (ponto.latitude && ponto.longitude) {
+                                totaliNasa++; // Incrementa per ogni rilevamento satellitare valido
                                 let temp = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
                                 let celsius = temp ? (parseFloat(temp) - 273.15).toFixed(1) + " °C" : 'N/D';
                                 L.circleMarker([parseFloat(ponto.latitude), parseFloat(ponto.longitude)], {
@@ -311,29 +326,29 @@
                             }
                         });
                     }
-                }).catch(() => console.log("Nessun dato NASA."));
+                    renderizzaContatori();
+                }).catch(() => {
+                    console.log("Nessun dato NASA o errore di caricamento.");
+                    totaliNasa = 0;
+                    renderizzaContatori();
+                });
         }
 
-        // FUNZIONE ASCOLTO SEGNALAZIONI CON CONTEGGIO IN TEMPO REALE
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
-                
-                // Reset delle variabili di conteggio ad ogni aggiornamento
-                let contatoreVerificati = 0;
-                let contatoreNonVerificati = 0;
+                totaliFirebaseVerificati = 0;
+                totaliFirebaseNonVerificati = 0;
 
                 querySnapshot.forEach((doc) => {
                     const dati = doc.data();
                     
-                    // Incremento dei contatori in base allo stato nel database
                     if (dati.stato === "Validata") {
-                        contatoreVerificati++;
+                        totaliFirebaseVerificati++;
                     } else {
-                        contatoreNonVerificati++;
+                        totaliFirebaseNonVerificati++;
                     }
 
-                    // Costruzione grafica del popup sulla mappa (Fedele alla tua immagine originale)
                     let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
                     
                     let badge = dati.stato === "In attesa di validazione operativa" 
@@ -354,9 +369,7 @@
                     }).addTo(layerUtenti).bindPopup(`${badge}${infoDettagliata}${img}`, { minWidth: 260 });
                 });
 
-                // Spinge i valori numerici aggiornati negli elementi HTML dei contatori
-                document.getElementById('countVerificati').innerText = contatoreVerificati;
-                document.getElementById('countNonVerificati').innerText = contatoreNonVerificati;
+                renderizzaContatori();
             });
         }
 
@@ -494,7 +507,6 @@
             } catch (e) { alert("Errore: " + e.message); btn.disabled = false; }
         };
 
-        // FUNZIONE LOGOUT
         window.disconnettiUtente = async function() {
             try {
                 await signOut(auth);
