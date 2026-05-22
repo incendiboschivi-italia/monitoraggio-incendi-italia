@@ -187,7 +187,7 @@
         </div>
 
         <div id="sezioneSegnala" style="display: none;">
-            <h3>Segnala Avvistamento Incendio</h3>
+            <h3 id="titoloSegnala">Segnala Avvistamento</h3>
             <p style="font-size:12px; color:#666; margin-bottom:12px;">Inserisci le coordinate geografiche in Gradi, Primi e Secondi.</p>
             
             <div class="gruppo-coordinate">
@@ -241,7 +241,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, setDoc, getDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyCtpbSPhgWoFIvAjGVsboBayl9oJjzDjy4",
@@ -267,7 +267,6 @@
 
         // --- BLACKLIST INTEGRALE FONTI DI CALORE INDUSTRIALI / RAFFINERIE D'ITALIA ---
         const blacklistIndustrie = [
-            // Raffinerie e Petrolchimici Principali
             { nome: "Polo Siderurgico ILVA (Taranto)", lat: 40.501, lon: 17.218, raggioKm: 5.0 },
             { nome: "Raffineria Saras (Sarroch)", lat: 39.083, lon: 9.026, raggioKm: 4.5 },
             { nome: "Polo Petrolchimico ISAB Gela", lat: 37.131, lon: 14.285, raggioKm: 4.5 },
@@ -285,8 +284,6 @@
             { nome: "Raffineria di Trecate (SARPOM)", lat: 45.437, lon: 8.749, raggioKm: 3.5 },
             { nome: "Centro Olio Val d'Agri ENI (Viggiano)", lat: 40.323, lon: 15.908, raggioKm: 2.5 },
             { nome: "Centro Olio Tempa Rossa (Corleto Perticara)", lat: 40.404, lon: 16.058, raggioKm: 2.5 },
-            
-            // Grandi Acciaierie e Fonderie ad alta emissione termica
             { nome: "Acciaierie Arvedi (Cremona)", lat: 45.114, lon: 10.038, raggioKm: 2.0 },
             { nome: "Acciaierie di Terni (AST)", lat: 42.563, lon: 12.668, raggioKm: 2.5 },
             { nome: "Polo Siderurgico Piombino", lat: 42.942, lon: 10.548, raggioKm: 3.0 },
@@ -297,7 +294,6 @@
             { nome: "Feralpi Siderurgica (Lonato del Garda)", lat: 45.457, lon: 10.495, raggioKm: 1.5 }
         ];
 
-        // Formula di Haversine per calcolare la distanza in km tra due punti sulla Terra
         function getDistanzaKm(lat1, lon1, lat2, lon2) {
             const R = 6371; 
             const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -343,14 +339,12 @@
         };
         riskControl.addTo(map);
 
-        // Renderizzatore unico dei contatori
         function renderizzaContatori() {
             const sommaVerificati = totaliFirebaseVerificati + totaliNasa;
             document.getElementById('countVerificati').innerText = sommaVerificati;
             document.getElementById('countNonVerificati').innerText = totaliFirebaseNonVerificati;
         }
 
-        // AGGIORNAMENTO DATI NASA CON FILTRAGGIO INDUSTRIALE COMPLETO D'ITALIA
         function aggiornaDatiSatellite() {
             fetch('incendi.json?t=' + Date.now())
                 .then(response => response.json())
@@ -361,11 +355,8 @@
                     if (punti && punti.length > 0) {
                         punti.forEach(ponto => {
                             if (ponto.latitude && ponto.longitude) {
-                                
-                                // Filtro Nativo NASA (Esclude i rilevamenti catalogati esplicitamente come non-vegetazione)
                                 if (ponto.type !== undefined && parseInt(ponto.type) !== 0) return;
 
-                                // Filtro Geografico tramite Blacklist Aree Industriali Estesa
                                 let inZonaIndustriale = false;
                                 for(let ind of blacklistIndustrie) {
                                     let dist = getDistanzaKm(parseFloat(ponto.latitude), parseFloat(ponto.longitude), ind.lat, ind.lon);
@@ -374,8 +365,6 @@
                                         break;
                                     }
                                 }
-                                
-                                // Blocca il disegno e l'avanzamento dei contatori se rientra nel raggio di una struttura industriale
                                 if (inZonaIndustriale) return; 
 
                                 totaliNasa++; 
@@ -395,15 +384,16 @@
                 });
         }
 
-        // ASCOLTO FIREBASE SEGNALAZIONI
+        // ASCOLTO FIREBASE SEGNALAZIONI CON LOGICA DI ELIMINAZIONE
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
                 totaliFirebaseVerificati = 0;
                 totaliFirebaseNonVerificati = 0;
 
-                querySnapshot.forEach((doc) => {
-                    const dati = doc.data();
+                querySnapshot.forEach((docSnap) => {
+                    const dati = docSnap.data();
+                    const docId = docSnap.id; // Recuperiamo l'ID unico del documento su Firebase
                     
                     if (dati.stato === "Validata") {
                         totaliFirebaseVerificati++;
@@ -425,15 +415,41 @@
                     if (dati.latitudine && dati.longitudine) infoDettagliata += `<b>Lat/Lon Decimale:</b> ${dati.latitudine}, ${dati.longitudine}<br>`;
                     if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`;
                     infoDettagliata += `<b>Inviato da:</b> ${dati.utente}</span>`;
+
+                    // --- NUOVO: BOTTONE ELIMINA VISIBILE SOLO AI RESPONSABILI ---
+                    let btnElimina = "";
+                    if (ruoloUtenteLoggato === "responsabile") {
+                        btnElimina = `
+                            <hr style="margin: 12px 0; border: 0; border-top: 1px solid #dee2e6;">
+                            <button onclick="eliminaSegnalazione('${docId}')" style="background: #c92a2a; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                                🗑️ Chiudi / Elimina Segnalazione
+                            </button>
+                        `;
+                    }
                     
                     L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
                         radius: 7, fillColor: colore, color: "#fff", weight: 2, fillOpacity: 0.85
-                    }).addTo(layerUtenti).bindPopup(`${badge}${infoDettagliata}${img}`, { minWidth: 260 });
+                    }).addTo(layerUtenti).bindPopup(`${badge}${infoDettagliata}${img}${btnElimina}`, { minWidth: 260 });
                 });
 
                 renderizzaContatori();
             });
         }
+
+        // --- NUOVO: FUNZIONE GLOBALE PER ELIMINARE LA SEGNALAZIONE DAL DATABASE ---
+        window.eliminaSegnalazione = async function(docId) {
+            if (!confirm("🚨 Sei sicuro di voler chiudere ed eliminare definitivamente questa segnalazione dalla mappa?")) {
+                return;
+            }
+            try {
+                // Passiamo db (database), nome collezione ("segnalazioni") e l'id del documento
+                await deleteDoc(doc(db, "segnalazioni", docId));
+                console.log("Segnalazione eliminata con successo");
+                // La mappa si aggiornerà automaticamente grazie a onSnapshot
+            } catch (error) {
+                alert("Errore durante l'eliminazione: " + error.message);
+            }
+        };
 
         function comprimiInBase64(file, maxW, maxH, quality) {
             return new Promise((resolve, reject) => {
@@ -461,7 +477,7 @@
         attivaAscoltoSegnalazioni();
         setInterval(aggiornaDatiSatellite, 300000);
 
-        // ASCOLTATORE STATO UTENTE
+        // ASCOLTATORE STATO UTENTE: AGGIUNTO SUPPORTO AL RUOLO "RESPONSABILE"
         onAuthStateChanged(auth, async (user) => {
             const btn = document.getElementById('btnAzione');
             if (user) {
@@ -470,12 +486,19 @@
                     const userDoc = await getDoc(doc(db, "utenti", user.uid));
                     if (userDoc.exists()) {
                         const datiUtente = userDoc.data();
+                        
                         if (datiUtente.ruolo === "in_attesa") {
                             ruoloUtenteLoggato = "cittadino";
                             btn.innerText = "➕ Nuova Segnalazione (Verifica in corso)";
+                            document.getElementById('titoloSegnala').innerText = "Segnala Avvistamento";
+                        } else if (datiUtente.ruolo === "responsabile") {
+                            ruoloUtenteLoggato = "responsabile";
+                            btn.innerText = "⭐ Pannello Responsabile SO";
+                            document.getElementById('titoloSegnala').innerText = "Inserimento Forzato Segnalazione";
                         } else {
                             ruoloUtenteLoggato = datiUtente.ruolo;
-                            btn.innerText = (ruoloUtenteLoggato === "volontario") ? "➕ Inserisci Segnalazione VAB" : "➕ Nuova Segnalazione";
+                            btn.innerText = (ruoloUtenteLoggato === "volontario") ? "➕ Inserisci Segnalazione" : "➕ Nuova Segnalazione";
+                            document.getElementById('titoloSegnala').innerText = "Segnala Avvistamento";
                         }
                     } else {
                         ruoloUtenteLoggato = "cittadino";
@@ -488,6 +511,9 @@
                 btn.style.background = "#2b8a3e";
                 document.getElementById('sezioneAuth').style.display = "none";
                 document.getElementById('sezioneSegnala').style.display = "block";
+                
+                // Ricarica la mappa per mostrare i bottoni di eliminazione se l'utente è appena diventato responsabile
+                attivaAscoltoSegnalazioni(); 
             } else {
                 utenteLoggato = null;
                 ruoloUtenteLoggato = "cittadino";
@@ -495,6 +521,7 @@
                 btn.style.background = "#e03131";
                 document.getElementById('sezioneAuth').style.display = "block";
                 document.getElementById('sezioneSegnala').style.display = "none";
+                attivaAscoltoSegnalazioni(); 
             }
         });
 
@@ -519,7 +546,7 @@
                     });
                     
                     if(ruoloEffettivo === "in_attesa") {
-                        alert("🚨 Profilo creato! L'account è in attesa di verifica da parte della Sezione per sbloccare le funzioni da Volontario.");
+                        alert("🚨 Profilo creato! L'account è in attesa di verifica da parte della Sezione per sbloccare le funzioni operative.");
                     } else {
                         alert("Registrazione completata!");
                     }
@@ -536,7 +563,7 @@
             const latS = parseFloat(document.getElementById('latSecondi').value) || 0;
             const lonG = parseFloat(document.getElementById('lonGradi').value) || 0;
             const lonP = parseFloat(document.getElementById('lonPrimi').value) || 0;
-            const lonS = parseFloat(document.getElementById('lonSerecondi').value) || 0;
+            const lonS = parseFloat(document.getElementById('lonSecondi').value) || 0;
             
             const fotoFile = document.getElementById('segnalaFoto').files[0];
             if (!document.getElementById('latGradi').value || !document.getElementById('lonGradi').value) {
@@ -550,7 +577,9 @@
             const latD = latG + (latP/60) + (latS/3600);
             const lonD = lonG + (lonP/60) + (lonS/3600);
             const dms = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
-            const stato = ruoloUtenteLoggato === "volontario" ? "Validata" : "In attesa di validazione operativa";
+            
+            // I Responsabili e i Volontari creano segnalazioni già validate
+            const stato = (ruoloUtenteLoggato === "volontario" || ruoloUtenteLoggato === "responsabile") ? "Validata" : "In attesa di validazione operativa";
 
             try {
                 const fotoB64 = await comprimiInBase64(fotoFile, 800, 800, 0.7);
