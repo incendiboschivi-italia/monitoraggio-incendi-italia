@@ -268,33 +268,40 @@
         let totaliFirebaseVerificati = 0;
         let totaliFirebaseNonVerificati = 0;
 
-        // --- BLACKLIST INTEGRALE FONTI DI CALORE INDUSTRIALI ---
+        // --- LISTA BLACKLIST AGGIORNATA E CONVERTITA IN DECIMALE ---
         const blacklistIndustrie = [
-            { nome: "Polo Siderurgico ILVA (Taranto)", lat: 40.501, lon: 17.218, raggioKm: 5.0 },
-            { nome: "Raffineria Saras (Sarroch)", lat: 39.083, lon: 9.026, raggioKm: 4.5 },
-            { nome: "Polo Petrolchimico ISAB Gela", lat: 37.131, lon: 14.285, raggioKm: 4.5 },
-            { nome: "Polo Petrolchimico Priolo-Melilli (Siracusa)", lat: 37.159, lon: 15.188, raggioKm: 5.5 },
-            { nome: "Raffineria di Milazzo", lat: 38.212, lon: 15.259, raggioKm: 3.5 },
-            { nome: "Raffineria ENI Sannazzaro de' Burgondi", lat: 45.093, lon: 8.898, raggioKm: 3.5 },
-            { nome: "Raffineria API Falconara Marittima", lat: 43.635, lon: 13.364, raggioKm: 2.5 },
-            { nome: "Raffineria ENI Livorno", lat: 43.591, lon: 10.334, raggioKm: 3.0 },
-            { nome: "Raffineria ENI Taranto", lat: 40.485, lon: 17.205, raggioKm: 3.0 },
-            { nome: "Polo Petrolchimico di Porto Marghera (Venezia)", lat: 45.454, lon: 12.247, raggioKm: 4.0 },
-            { nome: "Polo Petrolchimico di Ferrara", lat: 44.862, lon: 11.572, raggioKm: 3.0 },
-            { nome: "Polo Petrolchimico di Mantova", lat: 45.148, lon: 10.825, raggioKm: 3.0 },
-            { nome: "Raffineria Sonatrach Augusta", lat: 37.234, lon: 15.203, raggioKm: 4.0 },
-            { nome: "Raffineria di Busalla (IP)", lat: 44.577, lon: 8.951, raggioKm: 2.0 },
-            { nome: "Raffineria di Trecate (SARPOM)", lat: 45.437, lon: 8.749, raggioKm: 3.5 },
-            { nome: "Centro Olio Val d'Agri ENI (Viggiano)", lat: 40.323, lon: 15.908, raggioKm: 2.5 },
-            { nome: "Centro Olio Tempa Rossa (Corleto Perticara)", lat: 40.404, lon: 16.058, raggioKm: 2.5 },
-            { nome: "Acciaierie Arvedi (Cremona)", lat: 45.114, lon: 10.038, raggioKm: 2.0 },
-            { nome: "Acciaierie di Terni (AST)", lat: 42.563, lon: 12.668, raggioKm: 2.5 },
-            { nome: "Polo Siderurgico Piombino", lat: 42.942, lon: 10.548, raggioKm: 3.0 },
-            { nome: "Acciaierie ABS (Cargnacco - Udine)", lat: 46.002, lon: 13.242, raggioKm: 2.0 },
-            { nome: "Acciaierie Pittini (Osoppo)", lat: 46.248, lon: 13.068, raggioKm: 2.0 },
-            { nome: "Ori Martin (Brescia)", lat: 45.556, lon: 10.222, raggioKm: 1.5 },
-            { nome: "Alfa Acciai (Brescia)", lat: 45.524, lon: 10.255, raggioKm: 1.5 },
-            { nome: "Feralpi Siderurgica (Lonato del Garda)", lat: 45.457, lon: 10.495, raggioKm: 1.5 }
+            { nome: "Priolo Gargallo (SR) - Petrolchimico", lat: 37.13, lon: 15.21, raggioKm: 3.5 },
+            { nome: "Sannazzaro de' Burgondi (PV) - Raffineria ENI", lat: 44.91, lon: 8.89, raggioKm: 3.5 },
+            { nome: "Salerno - Zona Industriale", lat: 40.63, lon: 14.92, raggioKm: 3.5 },
+            { nome: "Civitavecchia (RM) - Centrale/Porto", lat: 42.09, lon: 11.82, raggioKm: 3.5 },
+            { nome: "Porto Marghera (VE) - Polo Chimico", lat: 45.45, lon: 12.23, raggioKm: 3.5 },
+            { nome: "Gela (CL) - Raffineria", lat: 37.15, lon: 14.23, raggioKm: 3.5 },
+            { nome: "Taranto - Ex ILVA / Raffineria", lat: 40.48, lon: 17.22, raggioKm: 3.5 },
+            { nome: "Falconara Marittima (AN) - Raffineria API", lat: 43.60, lon: 13.36, raggioKm: 3.5 },
+            { nome: "Genova - Area Siderurgica Cornigliano", lat: 44.43, lon: 8.75, raggioKm: 3.5 },
+            { nome: "Livorno - Raffineria ENI", lat: 43.58, lon: 10.34, raggioKm: 3.5 },
+            { nome: "Sarroch (CA) - Raffineria Saras", lat: 39.11, lon: 9.04, raggioKm: 3.5 },
+            { nome: "Brindisi - Centrale termoelettrica EniPower", lat: 40.627638, lon: 18.003333, raggioKm: 3.5 },
+            { nome: "Taranto - Agip Petroli-ilva", lat: 40.514888, lon: 17.206805, raggioKm: 3.5 },
+            { nome: "Augusta - Esso Italiana Srl", lat: 37.211944, lon: 15.170500, raggioKm: 3.5 },
+            { nome: "Catania - Zona industriale", lat: 37.438000, lon: 15.031805, raggioKm: 3.5 },
+            { nome: "Stromboli - Vulcano Stromboli", lat: 38.792833, lon: 15.213277, raggioKm: 3.5 },
+            { nome: "Zona Ind. Paduni-Selciatella - H.T.S.", lat: 41.695722, lon: 13.142611, raggioKm: 3.5 },
+            { nome: "San Giorgio - Zona Industriale CA", lat: 39.075750, lon: 9.018416, raggioKm: 3.5 },
+            { nome: "Portovesme - Portovesme s.r.l.", lat: 39.212777, lon: 8.406777, raggioKm: 3.5 },
+            { nome: "Tanca Altara - Buzzi Unicem Srl", lat: 40.554833, lon: 9.672527, raggioKm: 3.5 },
+            { nome: "Terni - Acciai Speciali Terni S.p.A.", lat: 42.566250, lon: 12.672055, raggioKm: 3.5 },
+            { nome: "Semonte-casamorcia - Cementerie Barbetti", lat: 43.363777, lon: 12.547083, raggioKm: 3.5 },
+            { nome: "Montelabbate - BRT Depot", lat: 43.852527, lon: 12.781277, raggioKm: 3.5 },
+            { nome: "Campogalliano - Arcese Trasporti Modena", lat: 44.678583, lon: 10.851027, raggioKm: 3.5 },
+            { nome: "Spinadesco - Stazione TERNA - ARVEDI", lat: 45.145805, lon: 9.941083, raggioKm: 3.5 },
+            { nome: "Lonato - Feralpi", lat: 45.458555, lon: 10.457722, raggioKm: 3.5 },
+            { nome: "Santa Maria del Sasso - Donora", lat: 45.528055, lon: 9.799388, raggioKm: 3.5 },
+            { nome: "Buccinasco - Hyperspace Trampoline", lat: 45.412944, lon: 9.116527, raggioKm: 3.5 },
+            { nome: "Settimo Milanese - Polirecuperi Srl", lat: 45.485611, lon: 9.039916, raggioKm: 3.5 },
+            { nome: "Sabbio Bergamasco - Tenaris Dalmine", lat: 45.639111, lon: 9.605833, raggioKm: 3.5 },
+            { nome: "Macherio - Ferro 2000", lat: 45.642583, lon: 9.260527, raggioKm: 3.5 },
+            { nome: "Ternate - Holcim (Italia) S.p.A.", lat: 45.782388, lon: 8.682333, raggioKm: 3.5 }
         ];
 
         function getDistanzaKm(lat1, lon1, lat2, lon2) {
@@ -386,7 +393,6 @@
                 });
         }
 
-        // ASCOLTO FIREBASE SEGNALAZIONI CON GESTIONE COORD. PROVINCIALI E REGIONALI
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
@@ -405,7 +411,6 @@
 
                     let colore = dati.stato === "In attesa di validazione operativa" ? "#e67e22" : "#fab005";
                     
-                    // Compilazione della modale popup con info territoriali complete
                     function compilaPopupHTML(regioneRilevata, provinciaRilevata, mostraTastoCancella) {
                         let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
                         let badge = dati.stato === "In attesa di validazione operativa" 
@@ -417,7 +422,7 @@
                         if (dati.combustibile) infoDettagliata += `<b>Vegetazione:</b> ${dati.combustibile}<br>`;
                         if (dati.latitudine && dati.longitudine) infoDettagliata += `<b>Lat/Lon:</b> ${dati.latitudine}, ${dati.longitudine}<br>`;
                         if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`;
-                        infoDettagliata += `<b>Inviato da:</b> ${dati.utente}</span>`;
+                        infoDettagliata += `<b>Inviato da:</b> ${dati.utente || 'Utente registrato'}</span>`;
 
                         let btnElimina = "";
                         if (mostraTastoCancella) {
@@ -436,7 +441,6 @@
                         radius: 7, fillColor: colore, color: "#fff", weight: 2, fillOpacity: 0.85
                     }).addTo(layerUtenti);
 
-                    // Verifica iniziale dei permessi per i marker già presenti
                     let autorizzatoIniziale = false;
                     if (ruoloUtenteLoggato === "responsabile" && dati.regione === regioneCompetenzaLoggata) {
                         autorizzatoIniziale = true;
@@ -446,7 +450,6 @@
 
                     marker.bindPopup(compilaPopupHTML(dati.regione || "Analisi...", dati.provincia || "Analisi...", autorizzatoIniziale), { minWidth: 260 });
 
-                    // REVERSE GEOCODING LIVE AL CLICK SUL MARKER
                     marker.on('popupopen', async () => {
                         let stringaRegione = dati.regione || "Non specificata";
                         let stringaProvincia = dati.provincia || "Non specificata";
@@ -464,7 +467,6 @@
                             }
                         }
 
-                        // Logica di autorizzazione dinamica controllata per gerarchia
                         let puoCancellare = false;
                         if (ruoloUtenteLoggato === "responsabile" && stringaRegione === regioneCompetenzaLoggata) {
                             puoCancellare = true;
@@ -480,7 +482,6 @@
             });
         }
 
-        // RIMOZIONE CON LOG DELLA MOTIVAZIONE OBBLIGATORIA
         window.eliminaSegnalazione = async function(docId) {
             const motivazione = prompt("🚨 RIMOZIONE INTERVENTO:\nInserisci la motivazione di chiusura del fronte fuoco (es. Bonificato / Falso allarme):");
             
@@ -491,7 +492,6 @@
             }
 
             try {
-                // Registro log strutturato per la catena di comando
                 await addDoc(collection(db, "logs_chiusura"), {
                     segnalazioneId: docId,
                     responsabile: utenteLoggato.email,
@@ -532,10 +532,8 @@
         }
 
         aggiornaDatiSatellite();
-        attivaAscoltoSegnalazioni();
         setInterval(aggiornaDatiSatellite, 300000);
 
-        // STRUTTURA DI ASCOLTO STATO UTENTE COMPATIBILE CON COORDINATORE PROVINCIALE
         onAuthStateChanged(auth, async (user) => {
             const btn = document.getElementById('btnAzione');
             if (user) {
@@ -638,7 +636,6 @@
             }
         };
 
-        // INSERIMENTO SEGNALAZIONE CON TRACCIAMENTO REGIONALE E PROVINCIALE AUTOMATICO
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
@@ -662,6 +659,23 @@
             const lonD = lonG + (lonP/60) + (lonS/3600);
             const dms = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
             
+            // FILTRO DI SICUREZZA BLACKLIST INTERNA ANCHE IN INSERIMENTO UTENTE
+            let inZonaIndustriale = false;
+            for(let ind of blacklistIndustrie) {
+                let dist = getDistanzaKm(latD, lonD, ind.lat, ind.lon);
+                if(dist <= ind.raggioKm) {
+                    inZonaIndustriale = true;
+                    break;
+                }
+            }
+
+            if(inZonaIndustriale) {
+                alert("🚨 INVIO BLOCCATO: Le coordinate si trovano all'interno o in prossimità di un polo industriale/termico monitorato da blacklist (Falso Allarme Automatico).");
+                btn.disabled = false;
+                btn.innerText = "Invia Segnalazione";
+                return;
+            }
+
             let regioneCalcolata = "Non specificata";
             let provinciaCalcolata = "Non specificata";
             try {
