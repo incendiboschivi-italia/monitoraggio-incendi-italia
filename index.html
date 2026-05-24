@@ -423,7 +423,7 @@
                             btnElimina = `
                                 <hr style="margin: 12px 0; border: 0; border-top: 1px solid #dee2e6;">
                                 <button onclick="eliminaSegnalazione('${docId}')" style="background: #c92a2a; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">
-                                    🗑️ Chiudi / Elimina (Area ${regioneRilevata})
+                                    🗑 *Chiudi / Elimina (Area ${regioneRilevata})*
                                 </button>
                             `;
                         }
@@ -439,11 +439,10 @@
                     let autorizzatoIniziale = (ruoloUtenteLoggato === "responsabile" && dati.regione === regioneCompetenzaLoggata);
                     marker.bindPopup(compilaPopupHTML(dati.regione || "Analisi in corso...", autorizzatoIniziale), { minWidth: 260 });
 
-                    // GESTORE DI REVERSE GEOCODING INTELLIGENTE AL CLICK (Risolve i casi "Non specificata")
+                    // GESTORE DI REVERSE GEOCODING INTELLIGENTE AL CLICK
                     marker.on('popupopen', async () => {
                         let stringaRegione = dati.regione || "Non specificata";
 
-                        // Se sul database manca o è indefinita, chiediamo direttamente a OpenStreetMap la regione esatta
                         if (stringaRegione === "Non specificata" || stringaRegione === "Analisi in corso...") {
                             try {
                                 const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${dati.latitudine}&lon=${dati.longitudine}&accept-language=it`);
@@ -456,7 +455,6 @@
                             }
                         }
 
-                        // Se l'area geografica calcolata corrisponde alla competenza del responsabile loggato, sblocca l'eliminazione
                         if (ruoloUtenteLoggato === "responsabile" && stringaRegione === regioneCompetenzaLoggata) {
                             marker.setPopupContent(compilaPopupHTML(stringaRegione, true));
                         } else {
@@ -469,13 +467,35 @@
             });
         }
 
+        // FUNZIONE DI ELIMINAZIONE AGGIORNATA CON LOGGING DELLA MOTIVAZIONE OBBLIGATORIA
         window.eliminaSegnalazione = async function(docId) {
-            if (!confirm("🚨 Sei sicuro di voler chiudere ed eliminare definitivamente questa segnalazione dalla mappa?")) {
+            // 1. Richiesta della motivazione tramite prompt nativo
+            const motivazione = prompt("🚨 RIMOZIONE INTERVENTO:\nInserisci obbligatoriamente la motivazione di chiusura (es. Spento / Falso allarme / Bonificato):");
+            
+            // 2. Controllo validità dell'input
+            if (motivazione === null) {
+                return; // L'utente ha premuto "Annulla"
+            }
+            
+            if (motivazione.trim() === "") {
+                alert("❌ Errore: È obbligatorio specificare una motivazione scritta per poter rimuovere l'evento!");
                 return;
             }
+
+            // 3. Esecuzione rimozione e logging su Firebase
             try {
+                // Salviamo l'azione nel registro di log prima di eliminare (opzionale ma consigliato per i report)
+                await addDoc(collection(db, "logs_chiusura"), {
+                    segnalazioneId: docId,
+                    responsabile: utenteLoggato.email,
+                    regione: regioneCompetenzaLoggata,
+                    motivazione: motivazione.trim(),
+                    dataChiusura: new Date().toISOString()
+                });
+
+                // Rimuoviamo la segnalazione attiva
                 await deleteDoc(doc(db, "segnalazioni", docId));
-                console.log("Segnalazione eliminata con successo");
+                alert("✅ Intervento chiuso e rimosso dalla mappa con successo.");
             } catch (error) {
                 alert("Errore durante l'eliminazione: " + error.message);
             }
@@ -602,7 +622,7 @@
             }
         };
 
-        // INVIA SEGNALAZIONE: REVERSE GEOCODING COMPLETAMENTE AUTOMATICO PRIMA DEL SALVATAGGIO
+        // INVIA SEGNALAZIONE
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
@@ -626,7 +646,6 @@
             const lonD = lonG + (lonP/60) + (lonS/3600);
             const dms = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
             
-            // INDIVIDUAZIONE AUTOMATICA DEI CONFINI REGIONALI
             let regioneCalcolata = "Non specificata";
             try {
                 const urlGeo = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latD.toFixed(6)}&lon=${lonD.toFixed(6)}&accept-language=it`;
