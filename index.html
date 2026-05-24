@@ -178,7 +178,7 @@
                 <label style="font-size: 12px; font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">Tipo di Profilo Operativo</label>
                 <select id="ruoloUtente">
                     <option value="cittadino">Cittadino / Utente Comune</option>
-                    <option value="volontario">Volontario Attivo (Richiede Verifica)</option>
+                    <option value="volontario">Volontario Attivo (Richiede Verification)</option>
                 </select>
             </div>
 
@@ -207,33 +207,6 @@
                     <input type="number" id="lonPrimi" placeholder="Primi (')" min="0" max="59">
                     <input type="number" id="lonSecondi" placeholder="Secondi (\")" step="any" min="0" max="59.99">
                 </div>
-            </div>
-
-            <div class="gruppo-coordinate">
-                <label>Regione dell'avvistamento</label>
-                <select id="segnalaRegione" style="margin-bottom:0;" required>
-                    <option value="">Seleziona la regione...</option>
-                    <option value="Abruzzo">Abruzzo</option>
-                    <option value="Basilicata">Basilicata</option>
-                    <option value="Calabria">Calabria</option>
-                    <option value="Campania">Campania</option>
-                    <option value="Emilia-Romagna">Emilia-Romagna</option>
-                    <option value="Friuli-Venezia Giulia">Friuli-Venezia Giulia</option>
-                    <option value="Lazio">Lazio</option>
-                    <option value="Liguria">Liguria</option>
-                    <option value="Lombardia">Lombardia</option>
-                    <option value="Marche">Marche</option>
-                    <option value="Molise">Molise</option>
-                    <option value="Piemonte">Piemonte</option>
-                    <option value="Puglia">Puglia</option>
-                    <option value="Sardegna">Sardegna</option>
-                    <option value="Sicilia">Sicilia</option>
-                    <option value="Toscana">Toscana</option>
-                    <option value="Trentino-Alto Adige">Trentino-Alto Adige</option>
-                    <option value="Umbria">Umbria</option>
-                    <option value="Valle d'Aosta">Valle d'Aosta</option>
-                    <option value="Veneto">Veneto</option>
-                </select>
             </div>
 
             <div class="gruppo-coordinate">
@@ -282,15 +255,14 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        auth.languageCode = 'it'; // FORZA LA LINGUA ITALIANA
+        auth.languageCode = 'it'; 
         const db = getFirestore(app);
 
         let utenteLoggato = null;
         let ruoloUtenteLoggato = "cittadino"; 
-        let regioneCompetenzaLoggata = ""; // Memorizza la regione del responsabile
+        let regioneCompetenzaLoggata = ""; 
         let modalitaRegistrazione = false;
 
-        // Contatori globali per sincronizzare l'unione dei dati (Firebase + NASA)
         let totaliNasa = 0;
         let totaliFirebaseVerificati = 0;
         let totaliFirebaseNonVerificati = 0;
@@ -408,13 +380,12 @@
                     }
                     renderizzaContatori();
                 }).catch(() => {
-                    console.log("Nessun dato NASA o errore di caricamento.");
                     totaliNasa = 0;
                     renderizzaContatori();
                 });
         }
 
-        // ASCOLTO FIREBASE SEGNALAZIONI CON LOGICA DI ELIMINAZIONE REGIONALE
+        // ASCOLTO FIREBASE SEGNALAZIONI CON RICONOSCIMENTO GEOGRAFICO AUTOMATICO
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
@@ -431,36 +402,67 @@
                         totaliFirebaseNonVerificati++;
                     }
 
-                    let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
-                    
-                    let badge = dati.stato === "In attesa di validazione operativa" 
-                        ? `<div style="background:#fff9db; color:#e67e22; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #ffe066;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>`
-                        : `<div style="background:#ebfbee; color:#2b8a3e; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #8ce99a;">✅ VALIDATA</div>`;
-                    
                     let colore = dati.stato === "In attesa di validazione operativa" ? "#e67e22" : "#fab005";
                     
-                    let infoDettagliata = "";
-                    if (dati.regione) infoDettagliata += `<span style="font-size:13px; line-height: 1.5;"><b>Regione:</b> ${dati.regione}<br>`;
-                    if (dati.dms) infoDettagliata += `<b>Coordinate DMS:</b> ${dati.dms}<br>`;
-                    if (dati.combustibile) infoDettagliata += `<b>Vegetazione:</b> ${dati.combustibile}<br>`;
-                    if (dati.latitudine && dati.longitudine) infoDettagliata += `<b>Lat/Lon Decimale:</b> ${dati.latitudine}, ${dati.longitudine}<br>`;
-                    if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`;
-                    infoDettagliata += `<b>Inviato da:</b> ${dati.utente}</span>`;
+                    // Funzione interna per generare la struttura dinamica del popup
+                    function compilaPopupHTML(regioneRilevata, mostraTastoCancella) {
+                        let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
+                        let badge = dati.stato === "In attesa di validazione operativa" 
+                            ? `<div style="background:#fff9db; color:#e67e22; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #ffe066;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>`
+                            : `<div style="background:#ebfbee; color:#2b8a3e; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #8ce99a;">✅ VALIDATA</div>`;
+                        
+                        let infoDettagliata = `<span style="font-size:13px; line-height: 1.5;"><b>Regione Rilevata:</b> ${regioneRilevata}<br>`;
+                        if (dati.dms) infoDettagliata += `<b>Coordinate DMS:</b> ${dati.dms}<br>`;
+                        if (dati.combustibile) infoDettagliata += `<b>Vegetazione:</b> ${dati.combustibile}<br>`;
+                        if (dati.latitudine && dati.longitudine) infoDettagliata += `<b>Lat/Lon Decimale:</b> ${dati.latitudine}, ${dati.longitudine}<br>`;
+                        if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`;
+                        infoDettagliata += `<b>Inviato da:</b> ${dati.utente}</span>`;
 
-                    // --- IL BOTTONE APPARE SOLO SE SEI RESPONSABILE DI QUELLA REGIONE ---
-                    let btnElimina = "";
-                    if (ruoloUtenteLoggato === "responsabile" && dati.regione === regioneCompetenzaLoggata) {
-                        btnElimina = `
-                            <hr style="margin: 12px 0; border: 0; border-top: 1px solid #dee2e6;">
-                            <button onclick="eliminaSegnalazione('${docId}')" style="background: #c92a2a; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">
-                                🗑️ Chiudi / Elimina (Area ${dati.regione})
-                            </button>
-                        `;
+                        let btnElimina = "";
+                        if (mostraTastoCancella) {
+                            btnElimina = `
+                                <hr style="margin: 12px 0; border: 0; border-top: 1px solid #dee2e6;">
+                                <button onclick="eliminaSegnalazione('${docId}')" style="background: #c92a2a; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">
+                                    🗑️ Chiudi / Elimina (Area ${regioneRilevata})
+                                </button>
+                            `;
+                        }
+                        return `${badge}${infoDettagliata}${img}${btnElimina}`;
                     }
-                    
-                    L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
+
+                    // Crea il marker base sulla mappa
+                    const marker = L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
                         radius: 7, fillColor: colore, color: "#fff", weight: 2, fillOpacity: 0.85
-                    }).addTo(layerUtenti).bindPopup(`${badge}${infoDettagliata}${img}${btnElimina}`, { minWidth: 260 });
+                    }).addTo(layerUtenti);
+
+                    // Impostazione provvisoria iniziale del popup
+                    let autorizzatoIniziale = (ruoloUtenteLoggato === "responsabile" && dati.regione === regioneCompetenzaLoggata);
+                    marker.bindPopup(compilaPopupHTML(dati.regione || "Analisi in corso...", autorizzatoIniziale), { minWidth: 260 });
+
+                    // GESTORE DI REVERSE GEOCODING INTELLIGENTE AL CLICK (Risolve i casi "Non specificata")
+                    marker.on('popupopen', async () => {
+                        let stringaRegione = dati.regione || "Non specificata";
+
+                        // Se sul database manca o è indefinita, chiediamo direttamente a OpenStreetMap la regione esatta
+                        if (stringaRegione === "Non specificata" || stringaRegione === "Analisi in corso...") {
+                            try {
+                                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${dati.latitudine}&lon=${dati.longitudine}&accept-language=it`);
+                                const geoData = await response.json();
+                                if (geoData && geoData.address) {
+                                    stringaRegione = geoData.address.state || geoData.address.region || "Non specificata";
+                                }
+                            } catch (err) {
+                                console.log("Errore geocoding live:", err);
+                            }
+                        }
+
+                        // Se l'area geografica calcolata corrisponde alla competenza del responsabile loggato, sblocca l'eliminazione
+                        if (ruoloUtenteLoggato === "responsabile" && stringaRegione === regioneCompetenzaLoggata) {
+                            marker.setPopupContent(compilaPopupHTML(stringaRegione, true));
+                        } else {
+                            marker.setPopupContent(compilaPopupHTML(stringaRegione, false));
+                        }
+                    });
                 });
 
                 renderizzaContatori();
@@ -505,7 +507,7 @@
         attivaAscoltoSegnalazioni();
         setInterval(aggiornaDatiSatellite, 300000);
 
-        // ASCOLTATORE STATO UTENTE: LEGGE ANCHE LA REGIONE DI COMPETENZA
+        // ASCOLTATORE STATO UTENTE
         onAuthStateChanged(auth, async (user) => {
             const btn = document.getElementById('btnAzione');
             if (user) {
@@ -521,7 +523,7 @@
                             document.getElementById('titoloSegnala').innerText = "Segnala Avvistamento";
                         } else if (datiUtente.ruolo === "responsabile") {
                             ruoloUtenteLoggato = "responsabile";
-                            regioneCompetenzaLoggata = datiUtente.regione_competenza || ""; // Recupera la regione
+                            regioneCompetenzaLoggata = datiUtente.regione_competenza || ""; 
                             btn.innerText = "⭐ Pannello Resp. " + (regioneCompetenzaLoggata ? "("+regioneCompetenzaLoggata+")" : "");
                             document.getElementById('titoloSegnala').innerText = "Inserimento Forzato Segnalazione";
                         } else {
@@ -554,7 +556,6 @@
             }
         });
 
-        // REGISTRAZIONE PROTETTA: AGGIUNTO CAMPO REGIONE VUOTO
         window.gestisciAuth = async function() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -568,7 +569,6 @@
                     
                     const ruoloEffettivo = (ruoloScelto === "volontario") ? "in_attesa" : "cittadino";
                     
-                    // Salva l'utente creando la riga regione_competenza pronta da compilare
                     await setDoc(doc(db, "utenti", user.uid), { 
                         email: email, 
                         ruolo: ruoloEffettivo,
@@ -588,7 +588,6 @@
             } catch (error) { alert("Errore: " + error.message); }
         };
 
-        // RECUPERO PASSWORD
         window.recuperaPassword = async function() {
             const email = document.getElementById('email').value;
             if (!email) {
@@ -597,12 +596,13 @@
             }
             try {
                 await sendPasswordResetEmail(auth, email);
-                alert("✅ Email di recupero inviata! Controlla la tua casella di posta (anche nello spam) per reimpostare la password.");
+                alert("✅ Email di recupero inviata! Controlla la tua casella di posta per reimpostare la password.");
             } catch (error) {
                 alert("Errore: " + error.message);
             }
         };
 
+        // INVIA SEGNALAZIONE: REVERSE GEOCODING COMPLETAMENTE AUTOMATICO PRIMA DEL SALVATAGGIO
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
@@ -611,42 +611,53 @@
             const lonP = parseFloat(document.getElementById('lonPrimi').value) || 0;
             const lonS = parseFloat(document.getElementById('lonSecondi').value) || 0;
             
-            const regioneScelta = document.getElementById('segnalaRegione').value; // PRENDE LA REGIONE
             const fotoFile = document.getElementById('segnalaFoto').files[0];
             
             if (!document.getElementById('latGradi').value || !document.getElementById('lonGradi').value) {
                 alert("I Gradi di Latitudine e Longitudine sono obbligatori!"); return;
             }
-            if (!regioneScelta) { 
-                alert("❌ Devi selezionare in quale regione si trova l'incendio!"); return; 
-            }
             if (!fotoFile) { alert("❌ È obbligatorio caricare una foto del fronte fuoco!"); return; }
 
             const btn = document.getElementById('btnInviaSegnalazione');
             btn.disabled = true;
+            btn.innerText = "Localizzazione in corso...";
 
             const latD = latG + (latP/60) + (latS/3600);
             const lonD = lonG + (lonP/60) + (lonS/3600);
             const dms = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
             
+            // INDIVIDUAZIONE AUTOMATICA DEI CONFINI REGIONALI
+            let regioneCalcolata = "Non specificata";
+            try {
+                const urlGeo = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latD.toFixed(6)}&lon=${lonD.toFixed(6)}&accept-language=it`;
+                const resGeo = await fetch(urlGeo);
+                const dataGeo = await resGeo.json();
+                if (dataGeo && dataGeo.address) {
+                    regioneCalcolata = dataGeo.address.state || dataGeo.address.region || "Non specificata";
+                }
+            } catch (err) {
+                console.log("Errore geocoding durante l'invio:", err);
+            }
+
             const stato = (ruoloUtenteLoggato === "volontario" || ruoloUtenteLoggato === "responsabile") ? "Validata" : "In attesa di validazione operativa";
 
             try {
                 const fotoB64 = await comprimiInBase64(fotoFile, 800, 800, 0.7);
                 await addDoc(collection(db, "segnalazioni"), {
                     latitudine: latD.toFixed(6), longitudine: lonD.toFixed(6), dms: dms,
-                    regione: regioneScelta, // SALVA LA REGIONE SUL DATABASE
+                    regione: regioneCalcolata, 
                     combustibile: document.getElementById('segnalaCombustibile').value,
                     note: document.getElementById('segnalaNote').value,
                     utente: utenteLoggato.email, stato: stato, fotoBase64: fotoB64, 
                     data: new Date().toISOString()
                 });
-                alert("Trasmesso istantaneamente in centrale!");
+                alert(`Trasmesso in centrale! Area assegnata automaticamente: ${regioneCalcolata}`);
                 chiudiFinestra();
-                ['latGradi','latPrimi','latSecondi','lonGradi','lonPrimi','lonSecondi','segnalaNote','segnalaRegione','segnalaFoto'].forEach(id => document.getElementById(id).value = '');
+                ['latGradi','latPrimi','latSecondi','lonGradi','lonPrimi','lonSecondi','segnalaNote','segnalaFoto'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('segnalaCombustibile').value = 'Non specificato';
                 btn.disabled = false;
-            } catch (e) { alert("Errore: " + e.message); btn.disabled = false; }
+                btn.innerText = "Invia Segnalazione";
+            } catch (e) { alert("Errore: " + e.message); btn.disabled = false; btn.innerText = "Invia Segnalazione"; }
         };
 
         window.disconnettiUtente = async function() {
