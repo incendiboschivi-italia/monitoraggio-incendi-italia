@@ -2,618 +2,437 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitoraggio Incendi Italia</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body, html { height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
-        #map { height: 100%; width: 100%; background: #242424; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: Arial, sans-serif; }
+        #map { height: 100vh; width: 100vw; }
         
-        /* Bottone Controllo Principale */
-        .btn-controllo {
+        /* Pannelli di Controllo (UI) */
+        .panel {
             position: absolute;
-            top: 80px;
-            left: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             z-index: 1000;
-            background: #e03131;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            transition: background 0.2s ease;
         }
-
-        /* Pannello Contatori in Alto a Sinistra */
-        .box-contatori {
-            position: absolute;
-            top: 135px;
-            left: 10px;
-            z-index: 1000;
-            background: white;
-            padding: 10px 12px;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            font-size: 12px;
-            font-weight: bold;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            min-width: 160px;
-            border: 1px solid #dee2e6;
-        }
-        .contatore-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .badge-conteggio {
-            padding: 2px 8px;
-            border-radius: 10px;
-            color: white;
-            font-weight: 800;
-            font-size: 11px;
-            min-width: 28px;
-            text-align: center;
-        }
-
-        /* Finestra Modale */
+        
+        #btn-auth { top: 20px; left: 60px; cursor: pointer; font-weight: bold; background: #2c3e50; color: white; border: none; }
+        #legenda-mappa { bottom: 20px; left: 20px; font-size: 14px; }
+        #legenda-rischio { top: 20px; right: 20px; font-size: 14px; }
+        
+        /* Modali (Popup centrali per Login e Segnalazione) */
         .modal {
             display: none;
             position: fixed;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 2000;
             background: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-            width: 92%;
-            max-width: 420px;
-            max-height: 85vh; 
-            overflow-y: auto; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            z-index: 2000;
+            width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
-        .modal h3 { color: #c92a2a; margin-bottom: 15px; }
-        .modal input, .modal textarea, .modal select {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 12px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
+        .modal.active { display: block; }
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1500;
         }
+        .modal-overlay.active { display: block; }
         
-        .gruppo-coordinate {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            border: 1px solid #e9ecef;
-        }
-        .gruppo-coordinate label { font-size: 13px; font-weight: bold; color: #495057; display: block; margin-bottom: 6px; }
-        .inputs-dms { display: flex; gap: 6px; }
-        .inputs-dms input { margin-bottom: 0 !important; text-align: center; }
-
-        .modal button {
-            background: #2b8a3e;
-            color: white;
-            border: none;
-            padding: 10px;
-            width: 100%;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .modal button:hover { background: #237032; }
-        .modal .chiudi { background: #6c757d; margin-top: 5px; color: white; border: none; padding: 10px; }
-        .modal .chiudi:hover { background: #5a6268; }
-        .modal p { font-size: 13px; text-align: center; margin-top: 10px; }
-        .modal p span { color: #1c7ed6; cursor: pointer; text-decoration: underline; }
-
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
-        .input-file-label { display: block; font-size: 12px; font-weight: bold; color: #c92a2a; margin-bottom: 4px; }
-
-        /* Legenda e Tabelle */
-        .info.legend { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 280px; }
-        .legend h4 { color: #c92a2a; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
-        .legend p { font-size: 12px; color: #495057; line-height: 1.4; margin-bottom: 5px; }
-        .legend-item { display: flex; align-items: center; margin-top: 8px; font-size: 12px; font-weight: 600; }
-        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .dot.nasa { background-color: #e03131; box-shadow: 0 0 6px #f03e3e; }
-        .dot.utente { background-color: #fab005; box-shadow: 0 0 6px #fcc419; }
-        .dot.cittadino { background-color: #e67e22; box-shadow: 0 0 6px #f39c12; }
-
-        .info.risk-table { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); width: 240px; }
-        .risk-table h4 { color: #212529; margin-bottom: 8px; font-size: 13px; font-weight: 700; text-align: center; border-bottom: 2px solid #dee2e6; padding-bottom: 4px; }
-        .tabella-rischio { width: 100%; border-collapse: collapse; font-size: 11px; }
-        .tabella-rischio th, .tabella-rischio td { padding: 5px 4px; text-align: left; border-bottom: 1px solid #f1f3f5; }
-        .badge-rischio { padding: 2px 6px; border-radius: 3px; color: white; font-weight: bold; font-size: 10px; display: inline-block; text-align: center; width: 55px; }
-        .r-basso { background-color: #2b8a3e; }
-        .r-medio { background-color: #fab005; color: #212529; }
-        .r-alto { background-color: #f76707; }
-        .r-estremo { background-color: #e03131; }
-
-        /* Responsive Mobile */
-        @media (max-width: 600px) {
-            .btn-controllo { top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; text-align: center; font-size: 16px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-            .box-contatori { top: 80px; left: 10px; min-width: 140px; padding: 8px 10px; }
-            .inputs-dms input { padding: 6px 2px; font-size: 12px; }
-            .info.legend { padding: 10px; max-width: 200px; margin-bottom: 80px; }
-            .legend h4 { font-size: 12px; margin-bottom: 5px; }
-            .legend p, .legend-item { font-size: 10px; }
-            .dot { height: 8px; width: 8px; }
-            .info.risk-table { display: none; }
-        }
+        /* Stili Form */
+        input, select, textarea, button { width: 100%; margin-bottom: 10px; padding: 8px; box-sizing: border-box; }
+        button { cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
+        .btn-green { background: #27ae60; color: white; }
+        .btn-red { background: #e74c3c; color: white; margin-top: 10px;}
+        .close-btn { position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 20px; color: #555; }
+        
+        .dms-group { display: flex; gap: 5px; margin-bottom: 15px; }
+        .dms-group input { width: 33%; }
+        
+        /* Immagini nel popup mappa */
+        .popup-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 4px; margin-top: 10px;}
     </style>
 </head>
 <body>
 
-    <button class="btn-controllo" id="btnAzione" onclick="apriFinestra()">🔓 Accedi / Registrati</button>
-
-    <div class="box-contatori">
-        <div class="contatore-item" style="color: #2b8a3e;">
-            <span>✅ Verificati:</span>
-            <span id="countVerificati" class="badge-conteggio" style="background: #2b8a3e;">0</span>
-        </div>
-        <div class="contatore-item" style="color: #e67e22;">
-            <span>⚠️ Da Verificare:</span>
-            <span id="countNonVerificati" class="badge-conteggio" style="background: #e67e22;">0</span>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="overlay" onclick="chiudiFinestra()"></div>
-    <div class="modal" id="finestraModale">
-        
-        <div id="sezioneAuth">
-            <h3 id="titoloAuth">Accedi alla Piattaforma</h3>
-            <input type="email" id="email" placeholder="La tua Email">
-            <input type="password" id="password" placeholder="Password (minimo 6 caratteri)">
-            
-            <div id="divRuolo" style="display: none; margin-bottom: 12px;">
-                <label style="font-size: 12px; font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">Tipo di Profilo Operativo</label>
-                <select id="ruoloUtente">
-                    <option value="cittadino">Cittadino / Utente Comune</option>
-                    <option value="volontario">Volontario Attivo (Richiede Verifica)</option>
-                </select>
-            </div>
-
-            <button id="btnAuth" onclick="gestisciAuth()">Accedi</button>
-            <p id="switchAuth">Non hai un account? <span onclick="cambiaModalitaAuth()">Registrati qui</span></p>
-        </div>
-
-        <div id="sezioneSegnala" style="display: none;">
-            <h3 id="titoloSegnala">Segnala Avvistamento</h3>
-            <p style="font-size:12px; color:#666; margin-bottom:12px;">Inserisci le coordinate geografiche in Gradi, Primi e Secondi.</p>
-            
-            <div class="gruppo-coordinate">
-                <label>Latitudine Nord (N)</label>
-                <div class="inputs-dms">
-                    <input type="number" id="latGradi" placeholder="Gradi (°)" min="0" max="90">
-                    <input type="number" id="latPrimi" placeholder="Primi (')" min="0" max="59">
-                    <input type="number" id="latSecondi" placeholder="Secondi (\")" step="any" min="0" max="59.99">
-                </div>
-            </div>
-
-            <div class="gruppo-coordinate">
-                <label>Longitudine Est (E)</label>
-                <div class="inputs-dms">
-                    <input type="number" id="lonGradi" placeholder="Gradi (°)" min="0" max="180">
-                    <input type="number" id="lonPrimi" placeholder="Primi (')" min="0" max="59">
-                    <input type="number" id="lonSecondi" placeholder="Secondi (\")" step="any" min="0" max="59.99">
-                </div>
-            </div>
-
-            <div class="gruppo-coordinate">
-                <label>Tipo di Combustibile / Vegetazione</label>
-                <select id="segnalaCombustibile" style="margin-bottom:0;">
-                    <option value="Non specificato">Seleziona tipologia...</option>
-                    <option value="Sterpaglie / Erba secca">Sterpaglie / Erba secca</option>
-                    <option value="Sottobosco / Arbusti">Sottobosco / Arbusti</option>
-                    <option value="Macchia Mediterranea">Macchia Mediterranea</option>
-                    <option value="Bosco d'Alto Fusto (Chiome)">Bosco d'Alto Fusto (Incendio di Chioma)</option>
-                    <option value="Residui agricoli / Abbruciamenti">Residui agricoli / Abbruciamenti</option>
-                </select>
-            </div>
-
-            <div class="gruppo-coordinate" style="border: 1px dashed #e03131; background: #fff5f5;">
-                <label class="input-file-label">📸 CARICA FOTO (OBBLIGATORIO)</label>
-                <input type="file" id="segnalaFoto" accept="image/*" style="margin-bottom:0; padding:4px; border:none; background:transparent;">
-            </div>
-
-            <textarea id="segnalaNote" placeholder="Note operative (es. Fumo denso, vento...)" rows="3"></textarea>
-            <button id="btnInviaSegnalazione" onclick="inviaSegnalazione()">Invia Segnalazione</button>
-            
-            <button id="btnLogout" onclick="disconnettiUtente()" style="background: #e03131; margin-top: 15px;">Disconnetti Account</button>
-        </div>
-
-        <button class="chiudi" onclick="chiudiFinestra()">Annulla</button>
-    </div>
-
     <div id="map"></div>
+
+    <button id="btn-auth" class="panel" onclick="apriPannelloAzione()">🔓 Accedi / Registrati</button>
+
+    <div id="legenda-mappa" class="panel">
+        <h4 style="margin-top: 0; color: darkred;">Monitoraggio Italia</h4>
+        <p>🔴 Satellite NASA</p>
+        <p>🟢 Validata (Volontari)</p>
+        <p>🟠 Da Verificare (Cittadini)</p>
+    </div>
+
+    <div id="legenda-rischio" class="panel">
+        <h4 style="margin-top: 0; text-align: center;">Indici di Rischio</h4>
+        <p><span style="background: green; color: white; padding: 2px 5px;">BASSO</span> Innesco difficile</p>
+        <p><span style="background: #f1c40f; color: black; padding: 2px 5px;">MEDIO</span> Propagazione moderata</p>
+        <p><span style="background: orange; color: white; padding: 2px 5px;">ALTO</span> Propagazione rapida</p>
+        <p><span style="background: darkred; color: white; padding: 2px 5px;">ESTREMO</span> Controllo difficile</p>
+    </div>
+
+    <div id="overlay" class="modal-overlay" onclick="chiudiModali()"></div>
+
+    <div id="modalAuth" class="modal">
+        <span class="close-btn" onclick="chiudiModali()">×</span>
+        <h3 id="authTitolo">Accedi</h3>
+        
+        <input type="email" id="email" placeholder="La tua email" required>
+        <input type="password" id="password" placeholder="Password" required>
+        
+        <div id="boxRegistrazione" style="display: none;">
+            <label for="tipoProfilo">Tipo di Profilo Operativo</label>
+            <select id="tipoProfilo">
+                <option value="cittadino">Cittadino / Utente Comune</option>
+                <option value="volontario_in_attesa">Volontario Associazione (In attesa)</option>
+            </select>
+        </div>
+
+        <button id="btnAuthAzione" class="btn-green" onclick="gestisciAuth()">Accedi</button>
+        
+        <p id="switchAuth" style="font-size: 13px; text-align: center; cursor: pointer; color: blue;" onclick="cambiaModalitaAuth()">Non hai un account? Registrati qui</p>
+        <p id="linkRecupero" style="font-size: 13px; text-align: center; cursor: pointer; color: #555; margin-top: 5px;" onclick="recuperaPassword()">Password dimenticata?</p>
+    </div>
+
+    <div id="modalSegnalazione" class="modal">
+        <span class="close-btn" onclick="chiudiModali()">×</span>
+        <h3 style="color: darkred;">Segnala Avvistamento Incendio</h3>
+        <p style="font-size: 12px; color: gray;">Inserisci le coordinate geografiche in Gradi, Primi e Secondi.</p>
+        
+        <label>Latitudine Nord (N)</label>
+        <div class="dms-group">
+            <input type="number" id="latGradi" placeholder="Gradi (°)">
+            <input type="number" id="latPrimi" placeholder="Primi (')">
+            <input type="number" id="latSecondi" placeholder="Secondi ('')">
+        </div>
+
+        <label>Longitudine Est (E)</label>
+        <div class="dms-group">
+            <input type="number" id="lonGradi" placeholder="Gradi (°)">
+            <input type="number" id="lonPrimi" placeholder="Primi (')">
+            <input type="number" id="lonSecondi" placeholder="Secondi ('')">
+        </div>
+
+        <label>Regione dell'avvistamento:</label>
+        <select id="regioneSegnalazione" required>
+            <option value="">Seleziona la regione...</option>
+            <option value="Abruzzo">Abruzzo</option>
+            <option value="Basilicata">Basilicata</option>
+            <option value="Calabria">Calabria</option>
+            <option value="Campania">Campania</option>
+            <option value="Emilia-Romagna">Emilia-Romagna</option>
+            <option value="Friuli-Venezia Giulia">Friuli-Venezia Giulia</option>
+            <option value="Lazio">Lazio</option>
+            <option value="Liguria">Liguria</option>
+            <option value="Lombardia">Lombardia</option>
+            <option value="Marche">Marche</option>
+            <option value="Molise">Molise</option>
+            <option value="Piemonte">Piemonte</option>
+            <option value="Puglia">Puglia</option>
+            <option value="Sardegna">Sardegna</option>
+            <option value="Sicilia">Sicilia</option>
+            <option value="Toscana">Toscana</option>
+            <option value="Trentino-Alto Adige">Trentino-Alto Adige</option>
+            <option value="Umbria">Umbria</option>
+            <option value="Valle d'Aosta">Valle d'Aosta</option>
+            <option value="Veneto">Veneto</option>
+        </select>
+
+        <label>Tipo di Combustibile / Vegetazione</label>
+        <select id="vegetazione" required>
+            <option value="Sterpaglie / Erba secca">Sterpaglie / Erba secca</option>
+            <option value="Bosco Ceduo">Bosco Ceduo</option>
+            <option value="Pineta / Conifere">Pineta / Conifere</option>
+            <option value="Macchia Mediterranea">Macchia Mediterranea</option>
+            <option value="Altro / Non identificato">Altro / Non identificato</option>
+        </select>
+
+        <label>📸 CARICA FOTO (Link URL o ImgBB per ora)</label>
+        <input type="text" id="fotoUrl" placeholder="Inserisci link dell'immagine" required>
+
+        <textarea id="noteOperative" rows="3" placeholder="Note operative (es. Fumo denso, vento...)"></textarea>
+
+        <button class="btn-green" onclick="inviaSegnalazione()">Invia Segnalazione</button>
+        <button class="btn-red" onclick="esciAccount()">Disconnetti Account</button>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script type="module">
+        // Importa moduli Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, doc, setDoc, getDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // === INSERISCI QUI LA TUA CONFIGURAZIONE FIREBASE ===
         const firebaseConfig = {
-          apiKey: "AIzaSyCtpbSPhgWoFIvAjGVsboBayl9oJjzDjy4",
-          authDomain: "monitoraggio-incendi-v1.firebaseapp.com",
-          projectId: "monitoraggio-incendi-v1",
-          storageBucket: "monitoraggio-incendi-v1.firebasestorage.app",
-          messagingSenderId: "806160880982",
-          appId: "1:806160880982:web:fd4747fd0841ad5066f2f7"
+            apiKey: "INSERISCI_LA_TUA_API_KEY",
+            authDomain: "monitoraggio-incendi-v1.firebaseapp.com",
+            projectId: "monitoraggio-incendi-v1",
+            storageBucket: "monitoraggio-incendi-v1.appspot.com",
+            messagingSenderId: "INSERISCI_SENDER_ID",
+            appId: "INSERISCI_APP_ID"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        
+        // FORZA LA LINGUA ITALIANA PER IL RECUPERO PASSWORD
+        auth.languageCode = 'it'; 
+
         const db = getFirestore(app);
 
-        let utenteLoggato = null;
-        let ruoloUtenteLoggato = "cittadino"; 
-        let modalitaRegistrazione = false;
+        // Inizializza Mappa Scenografica
+        const map = L.map('map').setView([41.8719, 12.5674], 6);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
+            maxZoom: 19
+        }).addTo(map);
 
-        // Contatori globali per sincronizzare l'unione dei dati (Firebase + NASA)
-        let totaliNasa = 0;
-        let totaliFirebaseVerificati = 0;
-        let totaliFirebaseNonVerificati = 0;
+        // Variabili Globali Utente
+        let isModalitaRegistrazione = false;
+        let datiUtenteLoggato = null; // Conterrà TUTTO il documento utente (ruolo, regione_competenza, etc.)
 
-        // --- BLACKLIST INTEGRALE FONTI DI CALORE INDUSTRIALI / RAFFINERIE D'ITALIA ---
-        const blacklistIndustrie = [
-            { nome: "Polo Siderurgico ILVA (Taranto)", lat: 40.501, lon: 17.218, raggioKm: 5.0 },
-            { nome: "Raffineria Saras (Sarroch)", lat: 39.083, lon: 9.026, raggioKm: 4.5 },
-            { nome: "Polo Petrolchimico ISAB Gela", lat: 37.131, lon: 14.285, raggioKm: 4.5 },
-            { nome: "Polo Petrolchimico Priolo-Melilli (Siracusa)", lat: 37.159, lon: 15.188, raggioKm: 5.5 },
-            { nome: "Raffineria di Milazzo", lat: 38.212, lon: 15.259, raggioKm: 3.5 },
-            { nome: "Raffineria ENI Sannazzaro de' Burgondi", lat: 45.093, lon: 8.898, raggioKm: 3.5 },
-            { nome: "Raffineria API Falconara Marittima", lat: 43.635, lon: 13.364, raggioKm: 2.5 },
-            { nome: "Raffineria ENI Livorno", lat: 43.591, lon: 10.334, raggioKm: 3.0 },
-            { nome: "Raffineria ENI Taranto", lat: 40.485, lon: 17.205, raggioKm: 3.0 },
-            { nome: "Polo Petrolchimico di Porto Marghera (Venezia)", lat: 45.454, lon: 12.247, raggioKm: 4.0 },
-            { nome: "Polo Petrolchimico di Ferrara", lat: 44.862, lon: 11.572, raggioKm: 3.0 },
-            { nome: "Polo Petrolchimico di Mantova", lat: 45.148, lon: 10.825, raggioKm: 3.0 },
-            { nome: "Raffineria Sonatrach Augusta", lat: 37.234, lon: 15.203, raggioKm: 4.0 },
-            { nome: "Raffineria di Busalla (IP)", lat: 44.577, lon: 8.951, raggioKm: 2.0 },
-            { nome: "Raffineria di Trecate (SARPOM)", lat: 45.437, lon: 8.749, raggioKm: 3.5 },
-            { nome: "Centro Olio Val d'Agri ENI (Viggiano)", lat: 40.323, lon: 15.908, raggioKm: 2.5 },
-            { nome: "Centro Olio Tempa Rossa (Corleto Perticara)", lat: 40.404, lon: 16.058, raggioKm: 2.5 },
-            { nome: "Acciaierie Arvedi (Cremona)", lat: 45.114, lon: 10.038, raggioKm: 2.0 },
-            { nome: "Acciaierie di Terni (AST)", lat: 42.563, lon: 12.668, raggioKm: 2.5 },
-            { nome: "Polo Siderurgico Piombino", lat: 42.942, lon: 10.548, raggioKm: 3.0 },
-            { nome: "Acciaierie ABS (Cargnacco - Udine)", lat: 46.002, lon: 13.242, raggioKm: 2.0 },
-            { nome: "Acciaierie Pittini (Osoppo)", lat: 46.248, lon: 13.068, raggioKm: 2.0 },
-            { nome: "Ori Martin (Brescia)", lat: 45.556, lon: 10.222, raggioKm: 1.5 },
-            { nome: "Alfa Acciai (Brescia)", lat: 45.524, lon: 10.255, raggioKm: 1.5 },
-            { nome: "Feralpi Siderurgica (Lonato del Garda)", lat: 45.457, lon: 10.495, raggioKm: 1.5 }
-        ];
+        // ==========================================
+        // GESTIONE AUTENTICAZIONE E UI
+        // ==========================================
 
-        function getDistanzaKm(lat1, lon1, lat2, lon2) {
-            const R = 6371; 
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        const mappaScura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO', maxZoom: 20 });
-        const mappaSatellitare = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
-        const mappaTopografica = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenTopoMap', maxZoom: 17 });
-
-        const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [mappaScura] });
-        const layerNasa = L.layerGroup().addTo(map);
-        const layerUtenti = L.layerGroup().addTo(map);
-
-        L.control.layers({ "Mappa Scura": mappaScura, "Vista Satellitare": mappaSatellitare, "Vista Topografica": mappaTopografica }).addTo(map);
-
-        const legend = L.control({ position: 'bottomleft' });
-        legend.onAdd = function () {
-            const div = L.DomUtil.create('div', 'info legend');
-            div.innerHTML = `<h4>Monitoraggio Italia</h4>
-                <div class="legend-item"><span class="dot nasa"></span>Satellite NASA</div>
-                <div class="legend-item"><span class="dot utente"></span>Validata (Volontari)</div>
-                <div class="legend-item"><span class="dot cittadino"></span>Da Verificare (Cittadini)</div>`;
-            return div;
-        };
-        legend.addTo(map);
-
-        const riskControl = L.control({ position: 'topright' });
-        riskControl.onAdd = function () {
-            const div = L.DomUtil.create('div', 'info risk-table');
-            div.innerHTML = `<h4>Indici di Rischio</h4>
-                <table class="tabella-rischio">
-                    <tr><td><span class="badge-rischio r-basso">BASSO</span></td><td>Innesco difficile.</td></tr>
-                    <tr><td><span class="badge-rischio r-medio">MEDIO</span></td><td>Propagazione moderata.</td></tr>
-                    <tr><td><span class="badge-rischio r-alto">ALTO</span></td><td>Propagazione rapida.</td></tr>
-                    <tr><td><span class="badge-rischio r-estremo">ESTREMO</span></td><td>Controllo difficile.</td></tr>
-                </table>`;
-            return div;
-        };
-        riskControl.addTo(map);
-
-        function renderizzaContatori() {
-            const sommaVerificati = totaliFirebaseVerificati + totaliNasa;
-            document.getElementById('countVerificati').innerText = sommaVerificati;
-            document.getElementById('countNonVerificati').innerText = totaliFirebaseNonVerificati;
-        }
-
-        function aggiornaDatiSatellite() {
-            fetch('incendi.json?t=' + Date.now())
-                .then(response => response.json())
-                .then(punti => {
-                    layerNasa.clearLayers();
-                    totaliNasa = 0; 
-                    
-                    if (punti && punti.length > 0) {
-                        punti.forEach(ponto => {
-                            if (ponto.latitude && ponto.longitude) {
-                                if (ponto.type !== undefined && parseInt(ponto.type) !== 0) return;
-
-                                let inZonaIndustriale = false;
-                                for(let ind of blacklistIndustrie) {
-                                    let dist = getDistanzaKm(parseFloat(ponto.latitude), parseFloat(ponto.longitude), ind.lat, ind.lon);
-                                    if(dist <= ind.raggioKm) {
-                                        inZonaIndustriale = true;
-                                        break;
-                                    }
-                                }
-                                if (inZonaIndustriale) return; 
-
-                                totaliNasa++; 
-                                let temp = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
-                                let celsius = temp ? (parseFloat(temp) - 273.15).toFixed(1) + " °C" : 'N/D';
-                                L.circleMarker([parseFloat(ponto.latitude), parseFloat(ponto.longitude)], {
-                                    radius: 6, fillColor: "#ff1a1a", color: "#ff8888", weight: 1.5, opacity: 0.9, fillOpacity: 0.75
-                                }).addTo(layerNasa).bindPopup(`<strong>Satellite NASA FIRMS</strong><br><b>Temp:</b> ${celsius}`);
-                            }
-                        });
-                    }
-                    renderizzaContatori();
-                }).catch(() => {
-                    console.log("Nessun dato NASA o errore di caricamento.");
-                    totaliNasa = 0;
-                    renderizzaContatori();
-                });
-        }
-
-        // ASCOLTO FIREBASE SEGNALAZIONI CON LOGICA DI ELIMINAZIONE
-        function attivaAscoltoSegnalazioni() {
-            onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
-                layerUtenti.clearLayers();
-                totaliFirebaseVerificati = 0;
-                totaliFirebaseNonVerificati = 0;
-
-                querySnapshot.forEach((docSnap) => {
-                    const dati = docSnap.data();
-                    const docId = docSnap.id; // Recuperiamo l'ID unico del documento su Firebase
-                    
-                    if (dati.stato === "Validata") {
-                        totaliFirebaseVerificati++;
-                    } else {
-                        totaliFirebaseNonVerificati++;
-                    }
-
-                    let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
-                    
-                    let badge = dati.stato === "In attesa di validazione operativa" 
-                        ? `<div style="background:#fff9db; color:#e67e22; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #ffe066;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>`
-                        : `<div style="background:#ebfbee; color:#2b8a3e; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #8ce99a;">✅ VALIDATA</div>`;
-                    
-                    let colore = dati.stato === "In attesa di validazione operativa" ? "#e67e22" : "#fab005";
-                    
-                    let infoDettagliata = "";
-                    if (dati.dms) infoDettagliata += `<span style="font-size:13px; line-height: 1.5;"><b>Coordinate DMS:</b> ${dati.dms}<br>`;
-                    if (dati.combustibile) infoDettagliata += `<b>Vegetazione:</b> ${dati.combustibile}<br>`;
-                    if (dati.latitudine && dati.longitudine) infoDettagliata += `<b>Lat/Lon Decimale:</b> ${dati.latitudine}, ${dati.longitudine}<br>`;
-                    if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`;
-                    infoDettagliata += `<b>Inviato da:</b> ${dati.utente}</span>`;
-
-                    // --- NUOVO: BOTTONE ELIMINA VISIBILE SOLO AI RESPONSABILI ---
-                    let btnElimina = "";
-                    if (ruoloUtenteLoggato === "responsabile") {
-                        btnElimina = `
-                            <hr style="margin: 12px 0; border: 0; border-top: 1px solid #dee2e6;">
-                            <button onclick="eliminaSegnalazione('${docId}')" style="background: #c92a2a; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">
-                                🗑️ Chiudi / Elimina Segnalazione
-                            </button>
-                        `;
-                    }
-                    
-                    L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
-                        radius: 7, fillColor: colore, color: "#fff", weight: 2, fillOpacity: 0.85
-                    }).addTo(layerUtenti).bindPopup(`${badge}${infoDettagliata}${img}${btnElimina}`, { minWidth: 260 });
-                });
-
-                renderizzaContatori();
-            });
-        }
-
-        // --- NUOVO: FUNZIONE GLOBALE PER ELIMINARE LA SEGNALAZIONE DAL DATABASE ---
-        window.eliminaSegnalazione = async function(docId) {
-            if (!confirm("🚨 Sei sicuro di voler chiudere ed eliminare definitivamente questa segnalazione dalla mappa?")) {
-                return;
-            }
-            try {
-                // Passiamo db (database), nome collezione ("segnalazioni") e l'id del documento
-                await deleteDoc(doc(db, "segnalazioni", docId));
-                console.log("Segnalazione eliminata con successo");
-                // La mappa si aggiornerà automaticamente grazie a onSnapshot
-            } catch (error) {
-                alert("Errore durante l'eliminazione: " + error.message);
-            }
-        };
-
-        function comprimiInBase64(file, maxW, maxH, quality) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = e => {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        let w = img.width, h = img.height;
-                        if (w > h) { if (w > maxW) { h *= maxW / w; w = maxW; } } 
-                        else { if (h > maxH) { w *= maxH / h; h = maxH; } }
-                        canvas.width = w; canvas.height = h;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, w, h);
-                        resolve(canvas.toDataURL('image/jpeg', quality));
-                    };
-                };
-                reader.onerror = e => reject(e);
-            });
-        }
-
-        aggiornaDatiSatellite();
-        attivaAscoltoSegnalazioni();
-        setInterval(aggiornaDatiSatellite, 300000);
-
-        // ASCOLTATORE STATO UTENTE: AGGIUNTO SUPPORTO AL RUOLO "RESPONSABILE"
         onAuthStateChanged(auth, async (user) => {
-            const btn = document.getElementById('btnAzione');
+            const btnAuth = document.getElementById("btn-auth");
             if (user) {
-                utenteLoggato = user;
-                try {
-                    const userDoc = await getDoc(doc(db, "utenti", user.uid));
-                    if (userDoc.exists()) {
-                        const datiUtente = userDoc.data();
-                        
-                        if (datiUtente.ruolo === "in_attesa") {
-                            ruoloUtenteLoggato = "cittadino";
-                            btn.innerText = "➕ Nuova Segnalazione (Verifica in corso)";
-                            document.getElementById('titoloSegnala').innerText = "Segnala Avvistamento";
-                        } else if (datiUtente.ruolo === "responsabile") {
-                            ruoloUtenteLoggato = "responsabile";
-                            btn.innerText = "⭐ Pannello Responsabile SO";
-                            document.getElementById('titoloSegnala').innerText = "Inserimento Forzato Segnalazione";
-                        } else {
-                            ruoloUtenteLoggato = datiUtente.ruolo;
-                            btn.innerText = (ruoloUtenteLoggato === "volontario") ? "➕ Inserisci Segnalazione" : "➕ Nuova Segnalazione";
-                            document.getElementById('titoloSegnala').innerText = "Segnala Avvistamento";
-                        }
-                    } else {
-                        ruoloUtenteLoggato = "cittadino";
-                        btn.innerText = "➕ Nuova Segnalazione";
-                    }
-                } catch(e) { 
-                    ruoloUtenteLoggato = "cittadino"; 
-                    btn.innerText = "➕ Nuova Segnalazione";
-                }
-                btn.style.background = "#2b8a3e";
-                document.getElementById('sezioneAuth').style.display = "none";
-                document.getElementById('sezioneSegnala').style.display = "block";
+                // Utente loggato: recuperiamo il suo profilo dal database
+                const docRef = doc(db, "utenti", user.uid);
+                const docSnap = await getDoc(docRef);
                 
-                // Ricarica la mappa per mostrare i bottoni di eliminazione se l'utente è appena diventato responsabile
-                attivaAscoltoSegnalazioni(); 
+                if (docSnap.exists()) {
+                    datiUtenteLoggato = docSnap.data();
+                    
+                    if (datiUtenteLoggato.ruolo === "responsabile") {
+                        btnAuth.innerHTML = `⭐ Responsabile: ${datiUtenteLoggato.regione_competenza}`;
+                        btnAuth.style.background = "darkred";
+                    } else {
+                        btnAuth.innerHTML = "📝 Segnala Avvistamento";
+                        btnAuth.style.background = "#27ae60";
+                    }
+                } else {
+                    // Profilo non trovato (può succedere se bypassi la registrazione)
+                    datiUtenteLoggato = { ruolo: "cittadino", email: user.email };
+                    btnAuth.innerHTML = "📝 Segnala Avvistamento";
+                }
             } else {
-                utenteLoggato = null;
-                ruoloUtenteLoggato = "cittadino";
-                btn.innerText = "🔓 Accedi / Registrati";
-                btn.style.background = "#e03131";
-                document.getElementById('sezioneAuth').style.display = "block";
-                document.getElementById('sezioneSegnala').style.display = "none";
-                attivaAscoltoSegnalazioni(); 
+                // Nessun utente
+                datiUtenteLoggato = null;
+                btnAuth.innerHTML = "🔓 Accedi / Registrati";
+                btnAuth.style.background = "#2c3e50";
             }
         });
 
-        // REGISTRAZIONE PROTETTA LATO DATABASE
+        // Funzioni Finestre Modali
+        window.apriPannelloAzione = function() {
+            if (auth.currentUser) {
+                document.getElementById('modalSegnalazione').classList.add('active');
+                document.getElementById('overlay').classList.add('active');
+            } else {
+                document.getElementById('modalAuth').classList.add('active');
+                document.getElementById('overlay').classList.add('active');
+            }
+        }
+
+        window.chiudiModali = function() {
+            document.querySelectorAll('.modal, .modal-overlay').forEach(el => el.classList.remove('active'));
+        }
+
+        window.cambiaModalitaAuth = function() {
+            isModalitaRegistrazione = !isModalitaRegistrazione;
+            document.getElementById('authTitolo').innerText = isModalitaRegistrazione ? "Registrati" : "Accedi";
+            document.getElementById('btnAuthAzione').innerText = isModalitaRegistrazione ? "Registrati" : "Accedi";
+            document.getElementById('boxRegistrazione').style.display = isModalitaRegistrazione ? "block" : "none";
+            document.getElementById('linkRecupero').style.display = isModalitaRegistrazione ? "none" : "block";
+            document.getElementById('switchAuth').innerText = isModalitaRegistrazione ? "Hai già un account? Accedi qui" : "Non hai un account? Registrati qui";
+        }
+
+        // Funzione Accesso/Registrazione
         window.gestisciAuth = async function() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            if(!email || !password) { alert("Compila tutti i campi!"); return; }
-            
+
+            if (!email || !password) { alert("Inserisci email e password."); return; }
+
             try {
-                if (modalitaRegistrazione) {
-                    const ruoloScelto = document.getElementById('ruoloUtente').value;
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    const user = userCredential.user;
+                if (isModalitaRegistrazione) {
+                    const profilo = document.getElementById('tipoProfilo').value;
+                    const userCred = await createUserWithEmailAndPassword(auth, email, password);
                     
-                    const ruoloEffettivo = (ruoloScelto === "volontario") ? "in_attesa" : "cittadino";
-                    
-                    await setDoc(doc(db, "utenti", user.uid), { 
-                        email: email, 
-                        ruolo: ruoloEffettivo,
-                        dataRegistrazione: new Date().toISOString()
+                    // CREAZIONE DELLA CARTELLA 'utenti' SUL DATABASE
+                    await setDoc(doc(db, "utenti", userCred.user.uid), {
+                        email: email,
+                        ruolo: profilo === "volontario_in_attesa" ? "in_attesa" : "cittadino",
+                        regione_competenza: "" // Spazio vuoto, verrà compilato a mano per i responsabili
                     });
                     
-                    if(ruoloEffettivo === "in_attesa") {
-                        alert("🚨 Profilo creato! L'account è in attesa di verifica da parte della Sezione per sbloccare le funzioni operative.");
-                    } else {
-                        alert("Registrazione completata!");
-                    }
+                    alert("Registrazione completata!");
                 } else {
                     await signInWithEmailAndPassword(auth, email, password);
                 }
-                chiudiFinestra();
-            } catch (error) { alert("Errore: " + error.message); }
+                chiudiModali();
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') alert("Errore: Questa email è già registrata.");
+                else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') alert("Errore: Credenziali errate.");
+                else alert("Errore: " + error.message);
+            }
+        }
+
+        // Recupero Password
+        window.recuperaPassword = async function() {
+            const email = document.getElementById('email').value;
+            if (!email) {
+                alert("⚠️ Inserisci la tua email nel campo apposito prima di cliccare su 'Password dimenticata'.");
+                return;
+            }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert("✅ Email di recupero inviata in italiano! Controlla la tua casella di posta.");
+            } catch (error) {
+                alert("Errore nel recupero: " + error.message);
+            }
         };
+
+        window.esciAccount = async function() {
+            await signOut(auth);
+            chiudiModali();
+        }
+
+        // ==========================================
+        // GESTIONE SEGNALAZIONI E MAPPA
+        // ==========================================
 
         window.inviaSegnalazione = async function() {
-            const latG = parseFloat(document.getElementById('latGradi').value) || 0;
-            const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
-            const latS = parseFloat(document.getElementById('latSecondi').value) || 0;
-            const lonG = parseFloat(document.getElementById('lonGradi').value) || 0;
-            const lonP = parseFloat(document.getElementById('lonPrimi').value) || 0;
-            const lonS = parseFloat(document.getElementById('lonSecondi').value) || 0;
-            
-            const fotoFile = document.getElementById('segnalaFoto').files[0];
-            if (!document.getElementById('latGradi').value || !document.getElementById('lonGradi').value) {
-                alert("I Gradi di Latitudine e Longitudine sono obbligatori!"); return;
-            }
-            if (!fotoFile) { alert("❌ È obbligatorio caricare una foto del fronte fuoco!"); return; }
-
-            const btn = document.getElementById('btnInviaSegnalazione');
-            btn.disabled = true;
-
-            const latD = latG + (latP/60) + (latS/3600);
-            const lonD = lonG + (lonP/60) + (lonS/3600);
-            const dms = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
-            
-            // I Responsabili e i Volontari creano segnalazioni già validate
-            const stato = (ruoloUtenteLoggato === "volontario" || ruoloUtenteLoggato === "responsabile") ? "Validata" : "In attesa di validazione operativa";
-
             try {
-                const fotoB64 = await comprimiInBase64(fotoFile, 800, 800, 0.7);
+                // Recupero coordinate DMS
+                const latG = parseFloat(document.getElementById('latGradi').value) || 0;
+                const latM = parseFloat(document.getElementById('latPrimi').value) || 0;
+                const latS = parseFloat(document.getElementById('latSecondi').value) || 0;
+                
+                const lonG = parseFloat(document.getElementById('lonGradi').value) || 0;
+                const lonM = parseFloat(document.getElementById('lonPrimi').value) || 0;
+                const lonS = parseFloat(document.getElementById('lonSecondi').value) || 0;
+
+                // Calcolo Decimali
+                const latDec = latG + (latM / 60) + (latS / 3600);
+                const lonDec = lonG + (lonM / 60) + (lonS / 3600);
+
+                if (latDec === 0 || lonDec === 0) { alert("Inserisci coordinate valide."); return; }
+
+                const regione = document.getElementById('regioneSegnalazione').value;
+                if (!regione) { alert("⚠️ Seleziona la regione dell'avvistamento."); return; }
+
+                const vegetazione = document.getElementById('vegetazione').value;
+                const fotoUrl = document.getElementById('fotoUrl').value;
+                const note = document.getElementById('noteOperative').value;
+                
+                // Determina stato in base al ruolo utente
+                let stato = "Da Verificare";
+                if (datiUtenteLoggato && (datiUtenteLoggato.ruolo === "volontario" || datiUtenteLoggato.ruolo === "responsabile")) {
+                    stato = "Validata";
+                }
+
                 await addDoc(collection(db, "segnalazioni"), {
-                    latitudine: latD.toFixed(6), longitudine: lonD.toFixed(6), dms: dms,
-                    combustibile: document.getElementById('segnalaCombustibile').value,
-                    note: document.getElementById('segnalaNote').value,
-                    utente: utenteLoggato.email, stato: stato, fotoBase64: fotoB64, 
-                    data: new Date().toISOString()
+                    latitudine: latDec,
+                    longitudine: lonDec,
+                    dms: `${latG}° ${latM}' ${latS}" N | ${lonG}° ${lonM}' ${lonS}" E`,
+                    regione: regione, // Salviamo la regione!
+                    vegetazione: vegetazione,
+                    foto: fotoUrl,
+                    note: note,
+                    autore: auth.currentUser.email,
+                    stato: stato,
+                    timestamp: new Date()
                 });
-                alert("Trasmesso istantaneamente in centrale!");
-                chiudiFinestra();
-                ['latGradi','latPrimi','latSecondi','lonGradi','lonPrimi','lonSecondi','segnalaNote','segnalaFoto'].forEach(id => document.getElementById(id).value = '');
-                document.getElementById('segnalaCombustibile').value = 'Non specificato';
-                btn.disabled = false;
-            } catch (e) { alert("Errore: " + e.message); btn.disabled = false; }
-        };
 
-        window.disconnettiUtente = async function() {
-            try {
-                await signOut(auth);
-                alert("Disconnessione effettuata con successo!");
-                chiudiFinestra();
-            } catch (error) { alert("Errore durante la disconnessione: " + error.message); }
-        };
+                alert("Segnalazione inviata con successo!");
+                chiudiModali();
+            } catch (error) {
+                alert("Errore nell'invio: " + error.message);
+            }
+        }
 
-        window.apriFinestra = function() { document.getElementById('finestraModale').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; };
-        window.chiudiFinestra = function() { document.getElementById('finestraModale').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; };
-        window.cambiaModalitaAuth = function() {
-            modalitaRegistrazione = !modalitaRegistrazione;
-            document.getElementById('titoloAuth').innerText = modalitaRegistrazione ? "Registrati" : "Accedi";
-            document.getElementById('btnAuth').innerText = modalitaRegistrazione ? "Registrati" : "Accedi";
-            document.getElementById('switchAuth').innerHTML = modalitaRegistrazione ? "Hai già un account? <span onclick='cambiaModalitaAuth()'>Accedi qui</span>" : "Non hai un account? <span onclick='cambiaModalitaAuth()'>Registrati qui</span>";
-            document.getElementById('divRuolo').style.display = modalitaRegistrazione ? "block" : "none";
+        // Sincronizzazione in tempo reale dei marker
+        let marcatoriAttivi = [];
+        
+        onSnapshot(collection(db, "segnalazioni"), (snapshot) => {
+            // Rimuovi vecchi marker
+            marcatoriAttivi.forEach(m => map.removeLayer(m));
+            marcatoriAttivi = [];
+
+            snapshot.forEach((docSnap) => {
+                const dati = docSnap.data();
+                const idSegnalazione = docSnap.id;
+                
+                // Colore in base allo stato
+                let color = "orange"; // Da Verificare
+                if (dati.stato === "Validata") color = "green";
+                
+                const marker = L.circleMarker([dati.latitudine, dati.longitudine], {
+                    color: color, fillColor: color, fillOpacity: 0.7, radius: 8
+                }).addTo(map);
+
+                // LOGICA RESPONSABILE PER L'ELIMINAZIONE (Controllo Regione)
+                let bottoneResponsabile = "";
+                if (
+                    datiUtenteLoggato && 
+                    datiUtenteLoggato.ruolo === "responsabile" && 
+                    datiUtenteLoggato.regione_competenza === dati.regione
+                ) {
+                    bottoneResponsabile = `
+                        <hr>
+                        <button onclick="eliminaSegnalazione('${idSegnalazione}')" style="background-color: red; color: white; width: 100%; padding: 5px; border-radius: 4px; border: none; cursor: pointer;">
+                            🗑️ Elimina (Competenza: ${datiUtenteLoggato.regione_competenza})
+                        </button>
+                    `;
+                }
+
+                // Genera Popup
+                marker.bindPopup(`
+                    <div style="text-align:center;">
+                        <b style="color:${color}; border: 1px solid ${color}; padding: 3px; display:inline-block; margin-bottom:5px;">
+                            ${dati.stato.toUpperCase()}
+                        </b>
+                    </div>
+                    <b>Regione:</b> ${dati.regione || "Non specificata"}<br>
+                    <b>Coordinate DMS:</b> ${dati.dms}<br>
+                    <b>Vegetazione:</b> ${dati.vegetazione}<br>
+                    <b>Note:</b> ${dati.note}<br>
+                    <small>Inviato da: ${dati.autore}</small>
+                    <img src="${dati.foto}" class="popup-img" alt="Foto Incendio" onerror="this.style.display='none'">
+                    ${bottoneResponsabile}
+                `);
+
+                marcatoriAttivi.push(marker);
+            });
+        });
+
+        // Funzione globale per eliminare dal database
+        window.eliminaSegnalazione = async function(id) {
+            if(confirm("Sei sicuro di voler eliminare definitivamente questo avvistamento?")) {
+                try {
+                    await deleteDoc(doc(db, "segnalazioni", id));
+                    // Chiude i popup aperti per ripulire l'interfaccia
+                    map.closePopup(); 
+                } catch (error) {
+                    alert("Errore durante l'eliminazione: " + error.message);
+                }
+            }
         };
     </script>
 </body>
