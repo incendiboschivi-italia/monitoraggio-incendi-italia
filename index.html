@@ -10,35 +10,151 @@
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body, html { height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
-        #map { height: 100%; width: 100%; background: #242424; }
-        
-        .pannello-bottoni { position: absolute; top: 80px; left: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .btn-controllo { background: #e03131; color: white; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: background 0.2s ease; }
-        .btn-registro { background: #1864ab; color: white; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: none; }
-        
-        .box-contatori { position: absolute; top: 175px; left: 10px; z-index: 1000; background: white; padding: 10px 12px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-size: 12px; font-weight: bold; display: flex; flex-direction: column; gap: 6px; min-width: 160px; border: 1px solid #dee2e6; }
-        .contatore-item { display: flex; justify-content: space-between; align-items: center; }
-        .badge-conteggio { padding: 2px 8px; border-radius: 10px; color: white; font-weight: 800; font-size: 11px; min-width: 28px; text-align: center; }
+        /* === RESET GLOBALE === */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
 
-        .box-filtro-tempo { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; background: rgba(36, 36, 36, 0.9); padding: 6px 12px; border-radius: 20px; border: 1px solid #e03131; box-shadow: 0 4px 10px rgba(0,0,0,0.4); display: flex; align-items: center; gap: 8px; color: white; font-size: 13px; }
-        .box-filtro-tempo select { background: #1a1a1a; color: white; border: 1px solid #555; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; outline: none; }
+        body, html { 
+            height: 100%; 
+            width: 100%; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            overflow: hidden; 
+        }
+
+        #map { 
+            height: 100%; 
+            width: 100%; 
+            background: #242424; 
+        }
         
-        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); width: 92%; max-width: 420px; max-height: 85vh; overflow-y: auto; }
-        .modal-larga { max-width: 800px !important; }
+        /* === PANNELLO BOTTONI PRINCIPALI === */
+        .pannello-bottoni { 
+            position: absolute; 
+            top: 80px; 
+            left: 10px; 
+            z-index: 1000; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+
+        .btn-controllo { 
+            background: #e03131; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 5px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
+            transition: background 0.2s ease; 
+        }
+
+        .btn-registro { 
+            background: #1864ab; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 5px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
+            display: none; 
+        }
+
+        /* === BOX CONTATORI === */
+        .box-contatori { 
+            position: absolute; 
+            top: 175px; 
+            left: 10px; 
+            z-index: 1000; 
+            background: white; 
+            padding: 10px 12px; 
+            border-radius: 6px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); 
+            font-size: 12px; 
+            font-weight: bold; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+            min-width: 160px; 
+            border: 1px solid #dee2e6; 
+        }
+
+        .contatore-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+
+        .badge-conteggio { 
+            padding: 2px 8px; 
+            border-radius: 10px; 
+            color: white; 
+            font-weight: 800; 
+            font-size: 11px; 
+            min-width: 28px; 
+            text-align: center; 
+        }
+
+        /* === FILTRO TEMPORALE NASA === */
+        .box-filtro-tempo { 
+            position: absolute; 
+            top: 10px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            z-index: 1000; 
+            background: rgba(36, 36, 36, 0.9); 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            border: 1px solid #e03131; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4); 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            color: white; 
+            font-size: 13px; 
+        }
+
+        .box-filtro-tempo select { 
+            background: #1a1a1a; 
+            color: white; 
+            border: 1px solid #555; 
+            padding: 4px 8px; 
+            border-radius: 12px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            cursor: pointer; 
+            outline: none; 
+        }
+        
+        /* === MODALI === */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 2000; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4); 
+            width: 92%; 
+            max-width: 420px; 
+            max-height: 85vh; 
+            overflow-y: auto; 
+        }
+
+        .modal-larga { max-width: 800px; }
         .modal input, .modal textarea, .modal select { width: 100%; padding: 8px; margin-bottom: 12px; border: 1px solid #ced4da; border-radius: 4px; }
-        .gruppo-coordinate { background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 12px; border: 1px solid #e9ecef; }
         .modal button.azione { background: #2b8a3e; color: white; border: none; padding: 10px; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer; }
         .modal button.chiudi { background: #6c757d; margin-top: 5px; color: white; border: none; padding: 10px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
         
-        .box-stati-popup { display: flex; gap: 4px; margin-top: 8px; justify-content: space-between; }
-        .btn-stato { flex: 1; padding: 6px 2px; font-size: 10px; font-weight: bold; border: none; border-radius: 4px; color: white; cursor: pointer; }
-        .btn-stato.viaggio { background: #1c7ed6; }
-        .btn-stato.bonifica { background: #845ef7; }
-        .btn-stato.estinto { background: #2b8a3e; }
-
         .tabella-registro { width: 100%; border-collapse: collapse; font-size: 12px; }
         .tabella-registro th { background: #343a40; color: white; padding: 8px; }
         .tabella-registro td { padding: 8px; border-bottom: 1px solid #dee2e6; }
@@ -137,17 +253,16 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, onSnapshot, deleteDoc, updateDoc, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyCtpbSPhgWoFIvAjGVsboBayl9oJjzDjy4", authDomain: "monitoraggio-incendi-v1.firebaseapp.com", projectId: "monitoraggio-incendi-v1", storageBucket: "monitoraggio-incendi-v1.firebasestorage.app" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let utenteLoggato = null, ruoloUtenteLoggato = "cittadino", regioneCompetenzaLoggata = "", provinciaCompetenzaLoggata = "", modalitaRegistrazione = false;
-        const BLACKLIST_INDUSTRIALE = [{ lat: 43.1234, lon: 10.5678, raggio_km: 1.5, nome: "Polo Chimico Rosignano" }, { lat: 45.0987, lon: 8.1234, raggio_km: 2.0, nome: "Raffineria Sannazzaro" }];
-
-        // DEFINIZIONE LAYERS MAPPA
+        let utenteLoggato = null, ruoloUtenteLoggato = "cittadino", modalitaRegistrazione = false;
+        
+        // LAYERS MAPPA
         const layerScura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 });
         const layerOpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
         const layerSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 });
@@ -155,7 +270,7 @@
         const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [layerScura] });
         
         // CONTROLLO LAYERS
-        const baseMaps = { "Scura": layerScura, "Standard": layerOpenStreetMap, "Satellite": layerSatellite };
+        const baseMaps = { "Mappa Scura": layerScura, "Standard": layerOpenStreetMap, "Satellite": layerSatellite };
         L.control.layers(baseMaps).addTo(map);
 
         const layerNasa = L.layerGroup().addTo(map);
@@ -173,8 +288,7 @@
             layerNasa.clearLayers();
             fetch('incendi.json?t=' + Date.now()).then(r=>r.json()).then(punti => {
                 punti.forEach(p => {
-                    if (!isNellaBlacklist(parseFloat(p.latitude), parseFloat(p.longitude)))
-                        L.circleMarker([parseFloat(p.latitude), parseFloat(p.longitude)], { radius: 6, fillColor: "#e03131", color: "#ff8888", weight: 1.5, fillOpacity: 0.8 }).addTo(layerNasa);
+                    L.circleMarker([parseFloat(p.latitude), parseFloat(p.longitude)], { radius: 6, fillColor: "#e03131", color: "#ff8888", weight: 1.5, fillOpacity: 0.8 }).addTo(layerNasa);
                 });
             }).catch(e=>console.log("Errore NASA"));
         }
@@ -188,7 +302,7 @@
                     if (d.stato === "In attesa di validazione operativa") nv++; else v++;
                     let col = d.stato === "Validata" ? "#fab005" : d.stato === "Estinto" ? "#2b8a3e" : "#e67e22";
                     const marker = L.circleMarker([parseFloat(d.latitudine), parseFloat(d.longitudine)], { radius: 8, fillColor: col, color: "#fff", weight: 2, fillOpacity: 0.9 }).addTo(layerUtenti);
-                    marker.bindPopup(`<b>${d.stato}</b><br>${d.regione}/${d.provincia}<br>${d.utente}`);
+                    marker.bindPopup(`<b>${d.stato}</b><br>${d.regione || 'N/A'}/${d.provincia || 'N/A'}<br>${d.utente}`);
                 });
                 document.getElementById('countVerificati').innerText = v;
                 document.getElementById('countNonVerificati').innerText = nv;
@@ -202,7 +316,7 @@
             tbody.innerHTML = "<tr><td>Recupero logs...</td></tr>";
             const q = await getDocs(query(collection(db, "logs_chiusura")));
             let html = "";
-            q.forEach(doc => { const l = doc.data(); html += `<tr><td>${l.regione} - ${l.motivazione}</td></tr>`; });
+            q.forEach(doc => { const l = doc.data(); html += `<tr><td>${l.regione || 'N/A'} - ${l.motivazione || 'Chiusura'}</td></tr>`; });
             tbody.innerHTML = html;
         };
 
@@ -229,9 +343,13 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 utenteLoggato = user;
-                const d = await getDoc(doc(db, "utenti", user.uid));
-                if(d.exists()) { const data = d.data(); ruoloUtenteLoggato = data.ruolo; regioneCompetenzaLoggata = data.regione_competenza || ""; provinciaCompetenzaLoggata = data.provincia_competenza || ""; }
-                if(ruoloUtenteLoggato.includes("responsabile")) document.getElementById('btnRegistro').style.display = "block";
+                const userDoc = await getDoc(doc(db, "utenti", user.uid));
+                if(userDoc.exists()) { 
+                    const d = userDoc.data();
+                    // Logica specifica per i nomi campi nel tuo DB (ruolo 1/ruolo 2)
+                    ruoloUtenteLoggato = d.ruolo || d["ruolo 1"] || d["ruolo 2"] || "cittadino";
+                    if(ruoloUtenteLoggato.includes("responsabile")) document.getElementById('btnRegistro').style.display = "block";
+                }
                 document.getElementById('sezioneAuth').style.display = "none";
                 document.getElementById('sezioneSegnala').style.display = "block";
                 attivaAscoltoSegnalazioni();
@@ -241,29 +359,12 @@
             }
         });
 
-        function calcolaDistanza(lat1, lon1, lat2, lon2) {
-            const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
-
-        function isNellaBlacklist(lat, lon) {
-            return BLACKLIST_INDUSTRIALE.some(b => calcolaDistanza(lat, lon, b.lat, b.lon) <= b.raggio_km);
-        }
-
         window.inviaSegnalazione = async function() {
             const lat = parseFloat(document.getElementById('latGradi').value) + (parseFloat(document.getElementById('latPrimi').value)/60) + (parseFloat(document.getElementById('latSecondi').value)/3600);
             const lon = parseFloat(document.getElementById('lonGradi').value) + (parseFloat(document.getElementById('lonPrimi').value)/60) + (parseFloat(document.getElementById('lonSecondi').value)/3600);
-            
-            if(isNellaBlacklist(lat, lon)) { alert("Zona industriale bloccata."); return; }
-
-            const file = document.getElementById('segnalaFoto').files[0];
-            EXIF.getData(file, async function() {
-                // Logica di invio semplificata per brevità (si aggiunge qui la compressione se necessaria)
-                await addDoc(collection(db, "segnalazioni"), { latitudine: lat, longitudine: lon, combustibile: document.getElementById('segnalaCombustibile').value, note: document.getElementById('segnalaNote').value, utente: utenteLoggato.email, stato: "In attesa di validazione operativa", timestamp: new Date().toISOString() });
-                alert("Segnalazione inviata!");
-                chiudiFinestre();
-            });
+            await addDoc(collection(db, "segnalazioni"), { latitudine: lat, longitudine: lon, combustibile: document.getElementById('segnalaCombustibile').value, note: document.getElementById('segnalaNote').value, utente: utenteLoggato.email, stato: "In attesa di validazione operativa", timestamp: new Date().toISOString() });
+            alert("Segnalazione inviata!");
+            chiudiFinestre();
         };
 
         window.apriFinestra = function() { document.getElementById('finestraModale').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; };
