@@ -12,20 +12,12 @@
     <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     /* CORREZIONE: Usa 100vh per forzare l'altezza reale dello schermo */
-    body, html { 
-        height: 100vh; 
-        width: 100vw; 
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-        overflow: hidden; 
-    }
-    #map { 
-        height: 100vh; 
-        width: 100vw; 
-        background: #242424; 
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
+
+    body, html { height: 100vh; width: 100vw; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
+#map { height: 100vh; width: 100vw; background: #242424; }
+        
+    // Aggiungi questa riga subito dopo aver creato la variabile 'map'
+setTimeout(function(){ map.invalidateSize(); }, 500);
     }
     /* ... mantieni tutto il resto del tuo CSS originale ... */
         
