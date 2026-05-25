@@ -501,7 +501,9 @@
         const mappaSatellitare = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
         
         // Sostituzione mappaTopografica con il tileLayer.offline per il caching
-        const mappaTopografica = L.tileLayer.offline('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { 
+        const mappaTopografica = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+    attribution: '&copy; OpenStreetMap' 
+});
             attribution: '&copy; OpenTopoMap', 
             maxZoom: 17, 
             subdomains: 'abc', 
