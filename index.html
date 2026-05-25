@@ -62,6 +62,39 @@
             text-align: center;
         }
 
+        /* Filtro Temporale NASA */
+        .box-filtro-tempo {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(36, 36, 36, 0.9);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #e03131;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-size: 13px;
+        }
+        .box-filtro-tempo select {
+            background: #1a1a1a;
+            color: white;
+            border: 1px solid #555;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+        }
+        .box-filtro-tempo select:focus {
+            border-color: #e03131;
+        }
+
         /* Finestra Modale */
         .modal {
             display: none;
@@ -142,6 +175,7 @@
         @media (max-width: 600px) {
             .btn-controllo { top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; text-align: center; font-size: 16px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
             .box-contatori { top: 80px; left: 10px; min-width: 140px; padding: 8px 10px; }
+            .box-filtro-tempo { width: 90%; top: 12px; justify-content: space-between; }
             .inputs-dms input { padding: 6px 2px; font-size: 12px; }
             .info.legend { padding: 10px; max-width: 200px; margin-bottom: 80px; }
             .legend h4 { font-size: 12px; margin-bottom: 5px; }
@@ -152,6 +186,16 @@
     </style>
 </head>
 <body>
+
+    <div class="box-filtro-tempo">
+        <span>🛰️ Hotspot NASA:</span>
+        <select id="filtroOreNasa" onchange="aggiornaDatiSatellite()">
+            <option value="3">Ultime 3 Ore</option>
+            <option value="12">Ultime 12 Ore</option>
+            <option value="24" selected>Ultime 24 Ore</option>
+            <option value="48">Ultime 48 Ore</option>
+        </select>
+    </div>
 
     <button class="btn-controllo" id="btnAzione" onclick="apriFinestra()">🔓 Accedi / Registrati</button>
 
@@ -268,7 +312,7 @@
         let totaliFirebaseVerificati = 0;
         let totaliFirebaseNonVerificati = 0;
 
-        // --- LISTA BLACKLIST AGGIORNATA E CONVERTITA IN DECIMALE ---
+        // --- LISTA BLACKLIST REALE CONVERTITA IN DECIMALE ---
         const blacklistIndustrie = [
             { nome: "Priolo Gargallo (SR) - Petrolchimico", lat: 37.13, lon: 15.21, raggioKm: 3.5 },
             { nome: "Sannazzaro de' Burgondi (PV) - Raffineria ENI", lat: 44.91, lon: 8.89, raggioKm: 3.5 },
@@ -321,8 +365,26 @@
         const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [mappaScura] });
         const layerNasa = L.layerGroup().addTo(map);
         const layerUtenti = L.layerGroup().addTo(map);
+        const layerBlacklistDebug = L.layerGroup().addTo(map); // Layer dedicato ai cerchi di debug
 
-        L.control.layers({ "Mappa Scura": mappaScura, "Vista Satellitare": mappaSatellitare, "Vista Topografica": mappaTopografica }).addTo(map);
+        L.control.layers({ 
+            "Mappa Scura": mappaScura, 
+            "Vista Satellitare": mappaSatellitare, 
+            "Vista Topografica": mappaTopografica 
+        }, {
+            "🔴 Zone Protette (Blacklist)": layerBlacklistDebug
+        }).addTo(map);
+
+        // --- DISEGNO VISIVO DEI CERCHI DELLA BLACKLIST (DEBUG) ---
+        blacklistIndustrie.forEach(ind => {
+            L.circle([ind.lat, ind.lon], {
+                radius: ind.raggioKm * 1000, // Trasforma Km in Metri per Leaflet
+                color: '#e03131',
+                weight: 1.5,
+                fillColor: '#f03e3e',
+                fillOpacity: 0.15
+            }).addTo(layerBlacklistDebug).bindPopup(`<b>ZONA PROTETTA AIB</b><br><b>Sito:</b> ${ind.nome}<br><b>Filtro tolleranza:</b> ${ind.raggioKm} Km`);
+        });
 
         const legend = L.control({ position: 'bottomleft' });
         legend.onAdd = function () {
@@ -355,8 +417,12 @@
             document.getElementById('countNonVerificati').innerText = totaliFirebaseNonVerificati;
         }
 
-        function aggiornaDatiSatellite() {
-            fetch('incendi.json?t=' + Date.now())
+        // --- GESTIONE E FILTRAGGIO ORARIO HOTSPOT SAT ---
+        window.aggiornaDatiSatellite = function() {
+            const oreFiltro Selezionate = parseInt(document.getElementById('filtroOreNasa').value);
+            const adesso = Date.now();
+
+            fetch('incendi.json?t=' + adesso)
                 .then(response => response.json())
                 .then(punti => {
                     layerNasa.clearLayers();
@@ -367,6 +433,21 @@
                             if (ponto.latitude && ponto.longitude) {
                                 if (ponto.type !== undefined && parseInt(ponto.type) !== 0) return;
 
+                                // 1. Controllo Filtro Temporale (NASA FIRMS)
+                                let timestampPunto = adesso; // Fallback se manca la data nel JSON di test
+                                if(ponto.acq_date) {
+                                    let stringaData = ponto.acq_date; 
+                                    let stringaOra = ponto.acq_time ? ponto.acq_time.padStart(4, '0') : "0000";
+                                    let isoData = `${stringaData}T${stringaOra.substring(0,2)}:${stringaOra.substring(2,4)}:00Z`;
+                                    timestampPunto = Date.parse(isoData);
+                                } else if (ponto.timestamp) {
+                                    timestampPunto = parseInt(ponto.timestamp);
+                                }
+
+                                const differenzaOre = (adesso - timestampPunto) / (1000 * 60 * 60);
+                                if (differenzaOre > oreFiltroSelezionate) return; // Esclude i record vecchi
+
+                                // 2. Controllo Filtro Geografico della Blacklist
                                 let inZonaIndustriale = false;
                                 for(let ind of blacklistIndustrie) {
                                     let dist = getDistanzaKm(parseFloat(ponto.latitude), parseFloat(ponto.longitude), ind.lat, ind.lon);
@@ -380,9 +461,11 @@
                                 totaliNasa++; 
                                 let temp = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
                                 let celsius = temp ? (parseFloat(temp) - 273.15).toFixed(1) + " °C" : 'N/D';
+                                let infoOra = ponto.acq_time ? `<br><b>Orario Passaggio:</b> ${ponto.acq_time.padStart(4, '0').replace(/(..)$/,':$1')} UTC` : '';
+
                                 L.circleMarker([parseFloat(ponto.latitude), parseFloat(ponto.longitude)], {
                                     radius: 6, fillColor: "#ff1a1a", color: "#ff8888", weight: 1.5, opacity: 0.9, fillOpacity: 0.75
-                                }).addTo(layerNasa).bindPopup(`<strong>Satellite NASA FIRMS</strong><br><b>Temp:</b> ${celsius}`);
+                                }).addTo(layerNasa).bindPopup(`<strong>Satellite NASA FIRMS</strong><br><b>Temp:</b> ${celsius}${infoOra}`);
                             }
                         });
                     }
@@ -531,6 +614,7 @@
             });
         }
 
+        // Primo avvio automatico
         aggiornaDatiSatellite();
         setInterval(aggiornaDatiSatellite, 300000);
 
@@ -659,7 +743,7 @@
             const lonD = lonG + (lonP/60) + (lonS/3600);
             const dms = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
             
-            // FILTRO DI SICUREZZA BLACKLIST INTERNA ANCHE IN INSERIMENTO UTENTE
+            // FILTRO DI SICUREZZA BLACKLIST INTERNA
             let inZonaIndustriale = false;
             for(let ind of blacklistIndustrie) {
                 let dist = getDistanzaKm(latD, lonD, ind.lat, ind.lon);
