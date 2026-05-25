@@ -10,16 +10,9 @@
     <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     
     <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    /* CORREZIONE: Usa 100vh per forzare l'altezza reale dello schermo */
-
-    body, html { height: 100vh; width: 100vw; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
-#map { height: 100vh; width: 100vw; background: #242424; }
-        
-    // Aggiungi questa riga subito dopo aver creato la variabile 'map'
-setTimeout(function(){ map.invalidateSize(); }, 500);
-    }
-    /* ... mantieni tutto il resto del tuo CSS originale ... */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
+        #map { height: 100%; width: 100%; background: #242424; }
         
         /* Bottone Controllo Principale */
         .btn-controllo {
@@ -38,28 +31,10 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
             transition: background 0.2s ease;
         }
 
-        /* Bottone Calcolo da Avvistamento */
-        .btn-calcolo {
-            position: absolute;
-            top: 130px;
-            left: 10px;
-            z-index: 1000;
-            background: #f0ad4e;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            transition: background 0.2s ease;
-        }
-        .btn-calcolo:hover { background: #ec971f; }
-
         /* Bottone Registro Speciale (Nascosto di Default) */
         .btn-registro-responsabile {
             position: absolute;
-            top: 285px;
+            top: 245px;
             left: 10px;
             z-index: 1000;
             background: #1864ab;
@@ -79,7 +54,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
         /* Pannello Contatori in Alto a Sinistra */
         .box-contatori {
             position: absolute;
-            top: 180px;
+            top: 135px;
             left: 10px;
             z-index: 1000;
             background: white;
@@ -248,21 +223,14 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
         .r-alto { background-color: #f76707; }
         .r-estremo { background-color: #e03131; }
 
-        /* Stile pulsanti mappa offline */
-        .leaflet-control-savetiles a {
-            background-color: white; color: black; font-size: 16px; line-height: 30px; text-align: center; 
-            text-decoration: none; display: block; width: 30px; height: 30px; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.65);
-        }
-
         /* Responsive Mobile */
         @media (max-width: 600px) {
             .btn-controllo { top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; text-align: center; font-size: 16px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-            .btn-calcolo { top: auto; bottom: 85px; left: 50%; transform: translateX(-50%); width: 90%; text-align: center; justify-content: center; padding: 15px; }
-            .btn-registro-responsabile { top: auto; bottom: 145px; left: 50%; transform: translateX(-50%); width: 90%; text-align: center; justify-content: center; padding: 15px; }
-            .box-contatori { top: 10px; left: 10px; min-width: 140px; padding: 8px 10px; }
-            .box-filtro-tempo { width: 90%; top: 12px; justify-content: space-between; display: none; } /* Nascondo NASA top bar per fare spazio se serve, o posizionarlo altrove */
+            .btn-registro-responsabile { top: auto; bottom: 85px; left: 50%; transform: translateX(-50%); width: 90%; text-align: center; justify-content: center; }
+            .box-contatori { top: 80px; left: 10px; min-width: 140px; padding: 8px 10px; }
+            .box-filtro-tempo { width: 90%; top: 12px; justify-content: space-between; }
             .inputs-dms input { padding: 6px 2px; font-size: 12px; }
-            .info.legend { padding: 10px; max-width: 200px; margin-bottom: 200px; }
+            .info.legend { padding: 10px; max-width: 200px; margin-bottom: 80px; }
             .legend h4 { font-size: 12px; margin-bottom: 5px; }
             .legend p, .legend-item { font-size: 10px; }
             .dot { height: 8px; width: 8px; }
@@ -283,7 +251,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
     </div>
 
     <button class="btn-controllo" id="btnAzione" onclick="apriFinestra()">🔓 Accedi / Registrati</button>
-    <button class="btn-calcolo" id="btnCalcolo" onclick="apriModaleCalcolo()">🎯 Calcola da Avvistamento</button>
+    
     <button class="btn-registro-responsabile" id="btnRegistroAperto" onclick="apriRegistroReport()">📋 Registro Report Regionali</button>
 
     <div class="box-contatori">
@@ -367,39 +335,6 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
         <button class="chiudi" onclick="chiudiFinestra()">Annulla</button>
     </div>
 
-    <div class="modal" id="modaleCalcolo">
-        <h3 style="color:#d9534f;">🎯 Calcolo Punto di Avvistamento</h3>
-        <p style="font-size:12px; color:#666; margin-bottom:12px;">Calcola le coordinate del fuoco partendo dalla tua posizione, direzione e distanza visiva.</p>
-        
-        <button onclick="ottieniPosizioneGPS()" style="background:#0275d8; margin-bottom:15px;">📍 Ottieni la mia posizione (GPS)</button>
-        
-        <div class="gruppo-coordinate">
-            <label>La tua Posizione (Osservatore)</label>
-            <div class="inputs-dms">
-                <input type="number" id="obsLat" step="any" placeholder="Latitudine">
-                <input type="number" id="obsLon" step="any" placeholder="Longitudine">
-            </div>
-        </div>
-        
-        <div class="gruppo-coordinate">
-            <label>Dati Rilevati</label>
-            <div class="inputs-dms">
-                <input type="number" id="azimut" min="0" max="360" step="any" placeholder="Azimut (0-360°)">
-                <input type="number" id="distanza" min="0" step="any" placeholder="Distanza (km)">
-            </div>
-        </div>
-        
-        <button onclick="calcolaETracciaIncendio()" style="background:#d9534f;">Calcola e Traccia Mappa</button>
-        
-        <div id="risultatiCalcolo" style="display:none; margin-top:15px; background:#f8f9fa; padding:10px; border-radius:4px; border:1px solid #ccc; text-align:center;">
-            <strong>Coordinate Fuoco Calcolate:</strong><br>
-            <span id="resCoordinate" style="font-family:monospace; font-size:14px; color:#c92a2a; font-weight:bold;"></span><br><br>
-            <button onclick="usaCoordinateCalcolate()" style="background:#fab005; color:#212529;">Usa in Nuova Segnalazione</button>
-        </div>
-
-        <button class="chiudi" onclick="chiudiFinestra()">Chiudi</button>
-    </div>
-
     <div class="modal modal-larga" id="modaleRegistroReport">
         <h3>📋 Registro Ufficiale dei Report Incendi Chiusi</h3>
         <p style="font-size:12px; color:#555; text-align:left; margin-bottom: 10px;">Questa sezione mostra lo storico certificato degli interventi conclusi ed archiviati.</p>
@@ -427,7 +362,6 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.offline@2.0.0/dist/leaflet.offline.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -506,14 +440,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
 
         const mappaScura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO', maxZoom: 20 });
         const mappaSatellitare = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
-        
-        // Sostituzione mappaTopografica con il tileLayer.offline per il caching
-        const mappaTopografica = L.tileLayer.offline('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { 
-            attribution: '&copy; OpenTopoMap', 
-            maxZoom: 17, 
-            subdomains: 'abc', 
-            crossOrigin: true 
-        });
+        const mappaTopografica = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenTopoMap', maxZoom: 17 });
 
         const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [mappaScura] });
         const layerNasa = L.layerGroup().addTo(map);
@@ -523,28 +450,10 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
         L.control.layers({ 
             "Mappa Scura": mappaScura, 
             "Vista Satellitare": mappaSatellitare, 
-            "Vista Topografica (Offline)": mappaTopografica 
+            "Vista Topografica": mappaTopografica 
         }, {
             "🔴 Zone Protette (Blacklist)": layerBlacklistDebug
         }).addTo(map);
-
-        // Controllo per salvare i tiles per l'uso Offline
-        const controlOffline = L.control.savetiles(mappaTopografica, {
-            zoomlevels: [12, 13, 14, 15, 16],
-            confirm(layer, successCallback) {
-                if (window.confirm("Scaricare i tasselli della mappa topografica visibile per l'uso offline?")) {
-                    successCallback();
-                }
-            },
-            confirmRemoval(layer, successCallback) {
-                if (window.confirm("Sei sicuro di voler eliminare TUTTE le mappe salvate offline?")) {
-                    successCallback();
-                }
-            },
-            saveText: '💾',
-            rmText: '🗑️'
-        });
-        controlOffline.addTo(map);
 
         blacklistIndustrie.forEach(ind => {
             L.circle([ind.lat, ind.lon], {
@@ -647,6 +556,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 utenteLoggato = user;
+                // Caricamento dei dettagli del ruolo dal Database Utenti
                 const docRef = doc(db, "utenti", user.uid);
                 const docSnap = await getDoc(docRef);
                 
@@ -663,6 +573,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
                 document.getElementById('sezioneAuth').style.display = "none";
                 document.getElementById('sezioneSegnala').style.display = "block";
 
+                // RENDI VISIBILE IL BOTTONE DEL REGISTRO SOLO AI RESPONSABILI REGIONALI
                 if (ruoloUtenteLoggato === "responsabile") {
                     document.getElementById('btnRegistroAperto').style.display = "flex";
                 } else {
@@ -681,6 +592,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
             }
         });
 
+        // --- ATTIVA ASCOLTO SEGNALAZIONI ATTIVE CON INTEGRAZIONE GEOCODING INTERROTTA ---
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
@@ -750,6 +662,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
                                     stringaRegione = geoData.address.state || geoData.address.region || "Non rilevata";
                                     stringaProvincia = geoData.address.county || geoData.address.suburb || "Non rilevata";
                                     
+                                    // Salva sul database per non rifare la chiamata reverse
                                     await setDoc(doc(db, "segnalazioni", docId), {
                                         regione: stringaRegione,
                                         provincia: stringaProvincia
@@ -765,8 +678,10 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
             });
         }
 
+        // --- SISTEMA DI CHIUSURA INCENDIO ED ARCHIVIAZIONE REGISTRO ---
         window.eliminaSegnalazione = async function(docId) {
             try {
+                // Recupera i dati correnti prima di archiviare
                 const docRef = doc(db, "segnalazioni", docId);
                 const docSnap = await getDoc(docRef);
 
@@ -776,12 +691,15 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
                 }
 
                 const datiIncendio = docSnap.data();
+
+                // Richiesta Input Dettagliati per il Registro Report
                 const operatoreSpento = prompt("Chi ha spento l'incendio? \n(Es: Intervento effettuato da VAB Pistoia, bonificato)", "VAB Pistoia");
-                if (operatoreSpento === null) return; 
+                if (operatoreSpento === null) return; // Operazione annullata dal responsabile
 
                 const motivazioneChiusura = prompt("Inserisci la nota tecnica/motivazione per il registro:", "Intervento effettuato con successo e area bonificata totalmente.");
                 if (motivazioneChiusura === null) return;
 
+                // 1. Scrivi l'evento storico nella nuova collezione 'registro_report'
                 await addDoc(collection(db, "registro_report"), {
                     dataChiusura: new Date().toLocaleString("it-IT"),
                     timestampChiusura: Date.now(),
@@ -796,6 +714,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
                     responsabileArchiviazione: utenteLoggato.email
                 });
 
+                // 2. Elimina la segnalazione attiva per pulire la mappa globale
                 await deleteDoc(docRef);
                 alert("Incendio chiuso con successo ed archiviato nel Registro Report!");
 
@@ -804,6 +723,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
             }
         };
 
+        // --- FUNZIONE PER LEGGERE IL REGISTRO REPORT (SOLO RESPONSABILI REGIONALI) ---
         window.apriRegistroReport = async function() {
             document.getElementById('overlay').style.display = 'block';
             document.getElementById('modaleRegistroReport').style.display = 'block';
@@ -812,6 +732,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
             corpoTabella.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#666;">Caricamento storico in corso...</td></tr>`;
 
             try {
+                // Prende i report ordinati dal più recente
                 const q = query(collection(db, "registro_report"), orderBy("timestampChiusura", "desc"));
                 const querySnapshot = await getDocs(q);
                 
@@ -843,114 +764,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
             }
         };
 
-        // --- SISTEMA DI CALCOLO AZIMUT E DISTANZA ---
-        let markerOsservatore = null;
-        let markerFuocoStimato = null;
-        let lineaVisiva = null;
-
-        window.apriModaleCalcolo = function() {
-            document.getElementById('overlay').style.display = 'block';
-            document.getElementById('modaleCalcolo').style.display = 'block';
-        };
-
-        window.ottieniPosizioneGPS = function() {
-            if (!navigator.geolocation) {
-                alert("La geolocalizzazione non è supportata dal tuo browser.");
-                return;
-            }
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    document.getElementById('obsLat').value = position.coords.latitude.toFixed(6);
-                    document.getElementById('obsLon').value = position.coords.longitude.toFixed(6);
-                    alert("Posizione GPS acquisita con successo!");
-                },
-                (error) => {
-                    alert("Impossibile recuperare la posizione GPS. Controlla i permessi.");
-                },
-                { enableHighAccuracy: true }
-            );
-        };
-
-        window.calcolaPuntoDestinazione = function(lat1, lon1, azimutGradi, distanzaKm) {
-            const R = 6371; 
-            const brng = (azimutGradi * Math.PI) / 180; 
-            const lat1Rad = (lat1 * Math.PI) / 180;
-            const lon1Rad = (lon1 * Math.PI) / 180;
-
-            const lat2Rad = Math.asin(Math.sin(lat1Rad) * Math.cos(distanzaKm / R) + Math.cos(lat1Rad) * Math.sin(distanzaKm / R) * Math.cos(brng));
-            const lon2Rad = lon1Rad + Math.atan2(Math.sin(brng) * Math.sin(distanzaKm / R) * Math.cos(lat1Rad), Math.cos(distanzaKm / R) - Math.sin(lat1Rad) * Math.sin(lat2Rad));
-
-            return { lat: (lat2Rad * 180) / Math.PI, lon: (lon2Rad * 180) / Math.PI };
-        };
-
-        window.calcolaETracciaIncendio = function() {
-            const latObs = parseFloat(document.getElementById('obsLat').value);
-            const lonObs = parseFloat(document.getElementById('obsLon').value);
-            const azimut = parseFloat(document.getElementById('azimut').value);
-            const distanza = parseFloat(document.getElementById('distanza').value);
-
-            if (isNaN(latObs) || isNaN(lonObs) || isNaN(azimut) || isNaN(distanza)) {
-                alert("Compila tutti i campi numerici per avviare il calcolo."); return;
-            }
-
-            if (markerOsservatore) map.removeLayer(markerOsservatore);
-            if (markerFuocoStimato) map.removeLayer(markerFuocoStimato);
-            if (lineaVisiva) map.removeLayer(lineaVisiva);
-
-            markerOsservatore = L.marker([latObs, lonObs]).addTo(map).bindPopup("<b>Punto di Osservazione</b>");
-
-            const pf = window.calcolaPuntoDestinazione(latObs, lonObs, azimut, distanza);
-            
-            document.getElementById('resCoordinate').innerText = `${pf.lat.toFixed(6)}, ${pf.lon.toFixed(6)}`;
-            document.getElementById('risultatiCalcolo').style.display = 'block';
-
-            markerFuocoStimato = L.circleMarker([pf.lat, pf.lon], {
-                radius: 8, fillColor: "#d9534f", color: "#fff", weight: 2, fillOpacity: 0.9
-            }).addTo(map).bindPopup(`<b>🔥 Incendio Stimato</b><br>Lat: ${pf.lat.toFixed(6)}<br>Lon: ${pf.lon.toFixed(6)}`).openPopup();
-
-            lineaVisiva = L.polyline([[latObs, lonObs], [pf.lat, pf.lon]], {
-                color: 'orange', weight: 3, dashArray: '10, 10'
-            }).addTo(map);
-
-            map.fitBounds(lineaVisiva.getBounds(), { padding: [50, 50] });
-            window.chiudiFinestra(); 
-        };
-
-        window.usaCoordinateCalcolate = function() {
-            const coords = document.getElementById('resCoordinate').innerText.split(',');
-            if(coords.length === 2) {
-                const lat = parseFloat(coords[0]);
-                const lon = parseFloat(coords[1]);
-                
-                function dec2dms(deg) {
-                    var d = Math.floor(deg);
-                    var minfloat = (deg-d)*60;
-                    var m = Math.floor(minfloat);
-                    var secfloat = (minfloat-m)*60;
-                    var s = secfloat.toFixed(2);
-                    return {d:d, m:m, s:s};
-                }
-                
-                const dmsLat = dec2dms(lat);
-                const dmsLon = dec2dms(lon);
-                
-                document.getElementById('latGradi').value = dmsLat.d;
-                document.getElementById('latPrimi').value = dmsLat.m;
-                document.getElementById('latSecondi').value = dmsLat.s;
-                
-                document.getElementById('lonGradi').value = dmsLon.d;
-                document.getElementById('lonPrimi').value = dmsLon.m;
-                document.getElementById('lonSecondi').value = dmsLon.s;
-                
-                window.chiudiFinestra();
-                document.getElementById('overlay').style.display = 'block';
-                document.getElementById('finestraModale').style.display = 'block';
-                document.getElementById('sezioneAuth').style.display = 'none';
-                document.getElementById('sezioneSegnala').style.display = 'block';
-            }
-        };
-
-        // --- FINESTRE UI MODALI ---
+        // --- INTERFACCIA APERTURA / CHIUSURA FINESTRE UI MODALI ---
         window.apriFinestra = function() {
             document.getElementById('overlay').style.display = 'block';
             document.getElementById('finestraModale').style.display = 'block';
@@ -960,9 +774,9 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
             document.getElementById('overlay').style.display = 'none';
             document.getElementById('finestraModale').style.display = 'none';
             document.getElementById('modaleRegistroReport').style.display = 'none';
-            document.getElementById('modaleCalcolo').style.display = 'none';
         }
 
+        // Metodi globali per l'interfaccia window (necessari con script type="module")
         window.cambiaModalitaAuth = function() {
             modalitaRegistrazione = !modalitaRegistrazione;
             if (modalitaRegistrazione) {
@@ -991,6 +805,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
             try {
                 if (modalitaRegistrazione) {
                     const creds = await createUserWithEmailAndPassword(auth, mail, pass);
+                    // Registrazione ruolo nel DB Firestore
                     await setDoc(doc(db, "utenti", creds.user.uid), {
                         email: mail,
                         ruolo: ruoloSel,
@@ -1025,6 +840,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
             } catch(e) { alert("Errore logout: " + e.message); }
         }
 
+        // --- SISTEMA DI INVIO SEGNALAZIONE ATTIVA (CON TRASFORMAZIONE EXIF) ---
         window.inviaSegnalazione = async function() {
             const gLat = parseFloat(document.getElementById('latGradi').value);
             const pLat = parseFloat(document.getElementById('latPrimi').value || 0);
@@ -1043,11 +859,19 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
                 return;
             }
 
+            // Calcolo coordinate decimali da DMS
             const latDec = gLat + (pLat / 60) + (sLat / 3600);
             const lonDec = gLon + (pLon / 60) + (sLon / 3600);
             const dmsLabel = `${gLat}°${pLat}'${sLat}"N - ${gLon}°${pLon}'${sLon}"E`;
 
             try {
+                // Estrattore EXIF per sicurezza incrociata coordinate
+                const gpsFoto = await estraiGpsDaFoto(inputFoto);
+                if(gpsFoto) {
+                    console.log("GPS Rilevato nei metadati foto originale:", gpsFoto);
+                }
+
+                // Trasformazione base64 string
                 const reader = new FileReader();
                 reader.readAsDataURL(inputFoto);
                 reader.onloadend = async () => {
@@ -1075,6 +899,7 @@ setTimeout(function(){ map.invalidateSize(); }, 500);
             }
         }
 
+        // Inizializzazione Mappa Globale
         window.aggiornaDatiSatellite();
     </script>
 </body>
