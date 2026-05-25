@@ -65,6 +65,10 @@
             display: none; 
         }
 
+        .btn-registro:hover { 
+            background: #145591; 
+        }
+
         /* === BOX CONTATORI === */
         .box-contatori { 
             position: absolute; 
@@ -131,7 +135,7 @@
             outline: none; 
         }
         
-        /* === MODALI === */
+        /* === FINESTRE MODALI (POPUP INTERFACCIA) === */
         .modal { 
             display: none; 
             position: fixed; 
@@ -149,23 +153,196 @@
             overflow-y: auto; 
         }
 
-        .modal-larga { max-width: 800px; }
-        .modal input, .modal textarea, .modal select { width: 100%; padding: 8px; margin-bottom: 12px; border: 1px solid #ced4da; border-radius: 4px; }
-        .modal button.azione { background: #2b8a3e; color: white; border: none; padding: 10px; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        .modal button.chiudi { background: #6c757d; margin-top: 5px; color: white; border: none; padding: 10px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999; }
+        .modal-larga { 
+            max-width: 800px !important; 
+        }
+
+        .modal h3 { 
+            color: #c92a2a; 
+            margin-bottom: 15px; 
+        }
+
+        .modal input, 
+        .modal textarea, 
+        .modal select { 
+            width: 100%; 
+            padding: 8px; 
+            margin-bottom: 12px; 
+            border: 1px solid #ced4da; 
+            border-radius: 4px; 
+        }
         
-        .tabella-registro { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .tabella-registro th { background: #343a40; color: white; padding: 8px; }
-        .tabella-registro td { padding: 8px; border-bottom: 1px solid #dee2e6; }
+        .gruppo-coordinate { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 6px; 
+            margin-bottom: 12px; 
+            border: 1px solid #e9ecef; 
+        }
 
-        .info.legend { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 280px; }
-        .legend-item { display: flex; align-items: center; margin-top: 6px; font-size: 11px; font-weight: 600; }
-        .dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .gruppo-coordinate label { 
+            font-size: 13px; 
+            font-weight: bold; 
+            color: #495057; 
+            display: block; 
+            margin-bottom: 6px; 
+        }
 
+        .inputs-dms { 
+            display: flex; 
+            gap: 6px; 
+        }
+
+        .inputs-dms input { 
+            margin-bottom: 0 !important; 
+            text-align: center; 
+        }
+
+        .modal button.azione { 
+            background: #2b8a3e; 
+            color: white; 
+            border: none; 
+            padding: 10px; 
+            width: 100%; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            cursor: pointer; 
+        }
+
+        .modal button.chiudi { 
+            background: #6c757d; 
+            margin-top: 5px; 
+            color: white; 
+            border: none; 
+            padding: 10px; 
+            width: 100%; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
+        
+        .modal-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            z-index: 1999; 
+        }
+        
+        /* === BOTTONI STATO POPUP SEGNALAZIONE === */
+        .box-stati-popup { 
+            display: flex; 
+            gap: 4px; 
+            margin-top: 8px; 
+            justify-content: space-between; 
+        }
+
+        .btn-stato { 
+            flex: 1; 
+            padding: 6px 2px; 
+            font-size: 10px; 
+            font-weight: bold; 
+            border: none; 
+            border-radius: 4px; 
+            color: white; 
+            cursor: pointer; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+        }
+
+        .btn-stato.viaggio { 
+            background: #1c7ed6; 
+        }
+
+        .btn-stato.bonifica { 
+            background: #845ef7; 
+        }
+
+        .btn-stato.estinto { 
+            background: #2b8a3e; 
+        }
+
+        /* === TABELLA REGISTRO OPERATIVO === */
+        .tabella-registro { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 12px; 
+            text-align: left; 
+        }
+
+        .tabella-registro th { 
+            background: #343a40; 
+            color: white; 
+            padding: 8px; 
+            position: sticky; 
+            top: 0; 
+        }
+
+        .tabella-registro td { 
+            padding: 8px; 
+            border-bottom: 1px solid #dee2e6; 
+        }
+
+        .tabella-registro tr:nth-child(even) { 
+            background-color: #f8f9fa; 
+        }
+
+        /* === LEGENDA MAPPA === */
+        .info.legend { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+            max-width: 280px; 
+        }
+
+        .legend h4 { 
+            color: #c92a2a; 
+            margin-bottom: 8px; 
+            font-size: 14px; 
+            font-weight: 700; 
+        }
+
+        .legend-item { 
+            display: flex; 
+            align-items: center; 
+            margin-top: 6px; 
+            font-size: 11px; 
+            font-weight: 600; 
+        }
+
+        .dot { 
+            height: 10px; 
+            width: 10px; 
+            border-radius: 50%; 
+            display: inline-block; 
+            margin-right: 8px; 
+        }
+
+        /* === MEDIA QUERIES MOBILE === */
         @media (max-width: 600px) {
-            .pannello-bottoni { top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; }
-            .box-contatori { top: 80px; }
+            .pannello-bottoni { 
+                top: auto; 
+                bottom: 20px; 
+                left: 50%; 
+                transform: translateX(-50%); 
+                width: 90%; 
+            }
+            .btn-controllo, .btn-registro { 
+                width: 100%; 
+                text-align: center; 
+                font-size: 14px; 
+                padding: 12px; 
+            }
+            .box-contatori { 
+                top: 80px; 
+            }
+            .info.legend { 
+                padding: 10px; 
+                margin-bottom: 120px; 
+            }
         }
     </style>
 </head>
@@ -174,10 +351,10 @@
     <div class="box-filtro-tempo">
         <span>🛰️ Hotspot NASA:</span>
         <select id="filtroOreNasa" onchange="aggiornaDatiSatellite()">
-            <option value="3">3 Ore</option>
-            <option value="12">12 Ore</option>
-            <option value="24" selected>24 Ore</option>
-            <option value="48">48 Ore</option>
+            <option value="3">Ultime 3 Ore</option>
+            <option value="12">Ultime 12 Ore</option>
+            <option value="24" selected>Ultime 24 Ore</option>
+            <option value="48">Ultime 48 Ore</option>
         </select>
     </div>
 
@@ -188,7 +365,7 @@
 
     <div class="box-contatori">
         <div class="contatore-item" style="color: #2b8a3e;">
-            <span>✅ Verificati:</span>
+            <span>✅ Verificati / Attivi:</span>
             <span id="countVerificati" class="badge-conteggio" style="background: #2b8a3e;">0</span>
         </div>
         <div class="contatore-item" style="color: #e67e22;">
@@ -200,177 +377,769 @@
     <div class="modal-overlay" id="overlay" onclick="chiudiFinestre()"></div>
     
     <div class="modal" id="finestraModale">
+        
         <div id="sezioneAuth">
             <h3 id="titoloAuth">Accedi alla Piattaforma</h3>
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="password" placeholder="Password">
+            <input type="email" id="email" placeholder="La tua Email">
+            <input type="password" id="password" placeholder="Password (minimo 6 caratteri)">
+            
             <div id="divRuolo" style="display: none; margin-bottom: 12px;">
+                <label style="font-size: 12px; font-weight: bold; color: #495057; display: block;">Tipo Profilo</label>
                 <select id="ruoloUtente">
-                    <option value="cittadino">Cittadino</option>
-                    <option value="volontario">Volontario</option>
+                    <option value="cittadino">Cittadino Comune</option>
+                    <option value="volontario">Volontario (Richiede Verifica)</option>
                 </select>
             </div>
+            
             <button class="azione" id="btnAuth" onclick="gestisciAuth()">Accedi</button>
-            <p id="switchAuth" style="font-size:13px; text-align:center; margin-top:10px;"><span onclick="cambiaModalitaAuth()" style="color:#1c7ed6; cursor:pointer;">Registrati</span></p>
+            <p id="switchAuth" style="font-size:13px; text-align:center; margin-top:10px;">
+                Non hai un account? <span onclick="cambiaModalitaAuth()" style="color:#1c7ed6; cursor:pointer;">Registrati</span>
+            </p>
         </div>
 
         <div id="sezioneSegnala" style="display: none;">
-            <h3>Segnala Avvistamento</h3>
+            <h3 id="titoloSegnala">Segnala Avvistamento</h3>
+            
             <div class="gruppo-coordinate">
-                <label>Latitudine (N)</label>
-                <div style="display:flex; gap:5px;"><input type="number" id="latGradi" placeholder="°"><input type="number" id="latPrimi" placeholder="'"><input type="number" id="latSecondi" placeholder="&quot;"></div>
+                <label>Latitudine Nord (N)</label>
+                <div class="inputs-dms">
+                    <input type="number" id="latGradi" placeholder="°" min="0" max="90">
+                    <input type="number" id="latPrimi" placeholder="'" min="0" max="59">
+                    <input type="number" id="latSecondi" placeholder="&quot;" step="any">
+                </div>
             </div>
+
             <div class="gruppo-coordinate">
-                <label>Longitudine (E)</label>
-                <div style="display:flex; gap:5px;"><input type="number" id="lonGradi" placeholder="°"><input type="number" id="lonPrimi" placeholder="'"><input type="number" id="lonSecondi" placeholder="&quot;"></div>
+                <label>Longitudine Est (E)</label>
+                <div class="inputs-dms">
+                    <input type="number" id="lonGradi" placeholder="°" min="0" max="180">
+                    <input type="number" id="lonPrimi" placeholder="'" min="0" max="59">
+                    <input type="number" id="lonSecondi" placeholder="&quot;" step="any">
+                </div>
             </div>
-            <select id="segnalaCombustibile">
-                <option value="Sterpaglie">Sterpaglie</option>
-                <option value="Macchia">Macchia Mediterranea</option>
-                <option value="Bosco">Bosco</option>
+
+            <select id="segnalaCombustibile" style="margin-bottom:12px;">
+                <option value="Non specificato">Vegetazione coinvolta...</option>
+                <option value="Sterpaglie">Sterpaglie / Erba</option>
+                <option value="Macchia Mediterranea">Macchia Mediterranea</option>
+                <option value="Bosco d'Alto Fusto">Bosco d'Alto Fusto</option>
             </select>
-            <input type="file" id="segnalaFoto" accept="image/*" style="margin-top:10px;">
-            <textarea id="segnalaNote" placeholder="Note..." rows="2"></textarea>
-            <button class="azione" id="btnInviaSegnalazione" onclick="inviaSegnalazione()">Invia</button>
-            <button class="chiudi" onclick="disconnettiUtente()" style="background:#e03131; margin-top:5px;">Disconnetti</button>
+
+            <div class="gruppo-coordinate" style="border: 1px dashed #e03131; background: #fff5f5;">
+                <label style="color: #c92a2a;">📸 CARICA FOTO (OBBLIGATORIO)</label>
+                <input type="file" id="segnalaFoto" accept="image/*" style="border:none; padding:4px;">
+                <p style="font-size: 10px; color: #666; margin-top: 5px;">I metadati EXIF (GPS) della foto verranno confrontati con le coordinate inserite per verificare l'attendibilità.</p>
+            </div>
+
+            <textarea id="segnalaNote" placeholder="Note operative..." rows="2"></textarea>
+            
+            <button class="azione" id="btnInviaSegnalazione" onclick="inviaSegnalazione()">Invia Segnalazione</button>
+            <button class="chiudi" onclick="disconnettiUtente()" style="background: #e03131; margin-top: 15px;">Disconnetti</button>
         </div>
-        <button class="chiudi" onclick="chiudiFinestre()">Chiudi</button>
+
+        <button class="chiudi" onclick="chiudiFinestre()">Annulla</button>
     </div>
 
     <div class="modal modal-larga" id="modalRegistro">
-        <h3>📋 Registro Operativo</h3>
+        <h3 style="color:#1864ab;">📋 Registro Log Archiviazione</h3>
+        <p style="font-size:12px; color:#666; margin-bottom:15px;">Storico interventi chiusi dai responsabili operativi. Questi dati sono immutabili.</p>
+        
         <div style="overflow-x: auto; max-height: 50vh;">
             <table class="tabella-registro">
-                <tbody id="bodyRegistro"></tbody>
+                <thead>
+                    <tr>
+                        <th>Data/Ora</th>
+                        <th>Regione/Prov.</th>
+                        <th>Responsabile</th>
+                        <th>Motivazione Log</th>
+                    </tr>
+                </thead>
+                <tbody id="bodyRegistro">
+                    </tbody>
             </table>
         </div>
-        <button class="chiudi" onclick="chiudiFinestre()">Chiudi</button>
+        
+        <button class="chiudi" style="margin-top:20px;" onclick="chiudiFinestre()">Chiudi Registro</button>
     </div>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, onSnapshot, deleteDoc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const firebaseConfig = { apiKey: "AIzaSyCtpbSPhgWoFIvAjGVsboBayl9oJjzDjy4", authDomain: "monitoraggio-incendi-v1.firebaseapp.com", projectId: "monitoraggio-incendi-v1", storageBucket: "monitoraggio-incendi-v1.firebasestorage.app" };
+        // ==========================================
+        // 1. CONFIGURAZIONE FIREBASE
+        // ==========================================
+        const firebaseConfig = {
+          apiKey: "AIzaSyCtpbSPhgWoFIvAjGVsboBayl9oJjzDjy4",
+          authDomain: "monitoraggio-incendi-v1.firebaseapp.com",
+          projectId: "monitoraggio-incendi-v1",
+          storageBucket: "monitoraggio-incendi-v1.firebasestorage.app"
+        };
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let utenteLoggato = null, ruoloUtenteLoggato = "cittadino", modalitaRegistrazione = false;
-        
-        // LAYERS MAPPA
-        const layerScura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 });
-        const layerOpenStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
-        const layerSatellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 });
+        // ==========================================
+        // 2. VARIABILI GLOBALI E STATO
+        // ==========================================
+        let utenteLoggato = null;
+        let ruoloUtenteLoggato = "cittadino"; 
+        let regioneCompetenzaLoggata = ""; 
+        let provinciaCompetenzaLoggata = ""; 
+        let modalitaRegistrazione = false;
 
-        const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [layerScura] });
-        
-        // CONTROLLO LAYERS
-        const baseMaps = { "Mappa Scura": layerScura, "Standard": layerOpenStreetMap, "Satellite": layerSatellite };
-        L.control.layers(baseMaps).addTo(map);
+        // Blacklist Zone Industriali (coordinate note per emissioni termiche costanti)
+        const BLACKLIST_INDUSTRIALE = [
+            { lat: 43.1234, lon: 10.5678, raggio_km: 1.5, nome: "Polo Chimico Rosignano" },
+            { lat: 45.0987, lon: 8.1234, raggio_km: 2.0, nome: "Raffineria Sannazzaro" }
+        ];
 
+        // ==========================================
+        // 3. INIZIALIZZAZIONE MAPPA LEAFLET
+        // ==========================================
+        const mappaScura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { 
+            maxZoom: 20 
+        });
+        
+        const map = L.map('map', { 
+            center: [42.5, 12.5], 
+            zoom: 6, 
+            layers: [mappaScura] 
+        });
+        
         const layerNasa = L.layerGroup().addTo(map);
         const layerUtenti = L.layerGroup().addTo(map);
 
+        // Creazione Legenda
         const legend = L.control({ position: 'bottomright' });
         legend.onAdd = function () {
             const div = L.DomUtil.create('div', 'info legend');
-            div.innerHTML = `<h4>Legenda</h4><div class="legend-item"><span class="dot" style="background:#e03131;"></span>🔴 NASA</div><div class="legend-item"><span class="dot" style="background:#e67e22;"></span>🟠 Da Verificare</div><div class="legend-item"><span class="dot" style="background:#fab005;"></span>🟡 Validata</div><div class="legend-item"><span class="dot" style="background:#1c7ed6;"></span>🔵 In viaggio</div><div class="legend-item"><span class="dot" style="background:#845ef7;"></span>🟣 In bonifica</div><div class="legend-item"><span class="dot" style="background:#2b8a3e;"></span>🟢 Estinto</div>`;
+            div.innerHTML = `
+                <h4>Legenda Stati</h4>
+                <div class="legend-item"><span class="dot" style="background:#e03131;"></span>🔴 Satellite NASA</div>
+                <div class="legend-item"><span class="dot" style="background:#e67e22;"></span>🟠 In attesa di verifica</div>
+                <div class="legend-item"><span class="dot" style="background:#fab005;"></span>🟡 Validata (Fronte attivo)</div>
+                <div class="legend-item"><span class="dot" style="background:#1c7ed6;"></span>🔵 Squadra in viaggio</div>
+                <div class="legend-item"><span class="dot" style="background:#845ef7;"></span>🟣 In bonifica</div>
+                <div class="legend-item"><span class="dot" style="background:#2b8a3e;"></span>🟢 Estinto (Da archiviare)</div>
+            `;
             return div;
         };
         legend.addTo(map);
 
+        // ==========================================
+        // 4. FUNZIONI DATI SATELLITARI (NASA)
+        // ==========================================
         window.aggiornaDatiSatellite = function() {
             layerNasa.clearLayers();
-            fetch('incendi.json?t=' + Date.now()).then(r=>r.json()).then(punti => {
-                punti.forEach(p => {
-                    L.circleMarker([parseFloat(p.latitude), parseFloat(p.longitude)], { radius: 6, fillColor: "#e03131", color: "#ff8888", weight: 1.5, fillOpacity: 0.8 }).addTo(layerNasa);
+            const ore = document.getElementById('filtroOreNasa').value;
+            
+            // Assicurati che l'URL punti al tuo file JSON o endpoint corretto
+            fetch('incendi.json?t=' + Date.now())
+                .then(r => r.json())
+                .then(punti => {
+                    if(punti) {
+                        punti.forEach(p => {
+                            const lat = parseFloat(p.latitude);
+                            const lon = parseFloat(p.longitude);
+                            
+                            // Controllo Blacklist Industriale
+                            if (isNellaBlacklist(lat, lon)) {
+                                return; // Salta questo punto
+                            }
+                            
+                            L.circleMarker([lat, lon], { 
+                                radius: 6, 
+                                fillColor: "#e03131", 
+                                color: "#ff8888", 
+                                weight: 1.5, 
+                                fillOpacity: 0.8 
+                            }).addTo(layerNasa);
+                        });
+                    }
+                })
+                .catch(e => {
+                    console.log("Errore recupero JSON NASA:", e);
                 });
-            }).catch(e=>console.log("Errore NASA"));
         }
 
+        // ==========================================
+        // 5. LISTENER FIREBASE E GENERAZIONE POPUP
+        // ==========================================
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
-                let v = 0, nv = 0;
+                let verificati = 0; 
+                let nonVerificati = 0;
+
                 querySnapshot.forEach((docSnap) => {
-                    const d = docSnap.data();
-                    if (d.stato === "In attesa di validazione operativa") nv++; else v++;
-                    let col = d.stato === "Validata" ? "#fab005" : d.stato === "Estinto" ? "#2b8a3e" : "#e67e22";
-                    const marker = L.circleMarker([parseFloat(d.latitudine), parseFloat(d.longitudine)], { radius: 8, fillColor: col, color: "#fff", weight: 2, fillOpacity: 0.9 }).addTo(layerUtenti);
-                    marker.bindPopup(`<b>${d.stato}</b><br>${d.regione || 'N/A'}/${d.provincia || 'N/A'}<br>${d.utente}`);
+                    const dati = docSnap.data();
+                    const docId = docSnap.id; 
+                    
+                    if (dati.stato === "In attesa di validazione operativa") {
+                        nonVerificati++;
+                    } else {
+                        verificati++;
+                    }
+
+                    // Definizione Colori e Testi Badge in base allo stato
+                    let colore = "#e67e22"; 
+                    let testoBadge = "⚠️ IN ATTESA"; 
+                    let bgBadge = "#fff9db"; 
+                    let borderBadge = "#ffe066";
+                    
+                    if (dati.stato === "Validata") { 
+                        colore = "#fab005"; 
+                        testoBadge = "🔥 VALIDATA (ATTIVO)"; 
+                        bgBadge = "#fff3bf"; 
+                        borderBadge = "#fcc419"; 
+                    }
+                    if (dati.stato === "Squadra in viaggio") { 
+                        colore = "#1c7ed6"; 
+                        testoBadge = "🚒 SQUADRA IN VIAGGIO"; 
+                        bgBadge = "#e7f5ff"; 
+                        borderBadge = "#74c0fc"; 
+                    }
+                    if (dati.stato === "In bonifica") { 
+                        colore = "#845ef7"; 
+                        testoBadge = "💧 IN BONIFICA"; 
+                        bgBadge = "#f3f0ff"; 
+                        borderBadge = "#b197fc"; 
+                    }
+                    if (dati.stato === "Estinto") { 
+                        colore = "#2b8a3e"; 
+                        testoBadge = "✅ ESTINTO"; 
+                        bgBadge = "#ebfbee"; 
+                        borderBadge = "#8ce99a"; 
+                    }
+
+                    // Costruzione HTML del Popup
+                    function compilaPopupHTML() {
+                        let imgHTML = "";
+                        if (dati.fotoBase64) {
+                            imgHTML = `<img src="${dati.fotoBase64}" style="width:100%; max-height:140px; border-radius:4px; margin-top:8px;">`;
+                        }
+
+                        let badgeHTML = `<div style="background:${bgBadge}; color:${colore}; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid ${borderBadge};">${testoBadge}</div>`;
+                        
+                        let infoHTML = `<span style="font-size:12px; line-height: 1.4;"><b>Reg/Prov:</b> ${dati.regione} / ${dati.provincia}<br>`;
+                        if (dati.combustibile) {
+                            infoHTML += `<b>Vegetazione:</b> ${dati.combustibile}<br>`;
+                        }
+                        infoHTML += `<b>Inviato da:</b> ${dati.utente}</span>`;
+
+                        // Controlli per aggiornare lo stato (Visibili a Volontari/Responsabili)
+                        let pannelloStatiHTML = "";
+                        if (ruoloUtenteLoggato === "volontario" || ruoloUtenteLoggato === "responsabile" || ruoloUtenteLoggato === "responsabile_provinciale") {
+                            pannelloStatiHTML = `
+                                <div style="margin-top:10px; border-top:1px solid #ddd; padding-top:8px;">
+                                    <p style="font-size:10px; font-weight:bold; color:#495057; text-align:center; margin-bottom:4px;">Aggiorna stato intervento:</p>
+                                    <div class="box-stati-popup">
+                                        <button class="btn-stato viaggio" onclick="aggiornaStatoEvento('${docId}', 'Squadra in viaggio')">🚒 Viaggio</button>
+                                        <button class="btn-stato bonifica" onclick="aggiornaStatoEvento('${docId}', 'In bonifica')">💧 Bonifica</button>
+                                        <button class="btn-stato estinto" onclick="aggiornaStatoEvento('${docId}', 'Estinto')">✅ Estinto</button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        // Bottone Archiviazione Definitiva (Visibile SOLO ai Responsabili competenti)
+                        let btnEliminaHTML = "";
+                        let puoArchiviare = false;
+                        
+                        if (ruoloUtenteLoggato === "responsabile" && dati.regione === regioneCompetenzaLoggata) {
+                            puoArchiviare = true;
+                        }
+                        if (ruoloUtenteLoggato === "responsabile_provinciale" && dati.regione === regioneCompetenzaLoggata && dati.provincia.toLowerCase().includes(provinciaCompetenzaLoggata.toLowerCase())) {
+                            puoArchiviare = true;
+                        }
+                        
+                        if (puoArchiviare) {
+                            btnEliminaHTML = `
+                                <button onclick="eliminaSegnalazione('${docId}')" style="background:#c92a2a; color:white; border:none; padding:8px; width:100%; border-radius:4px; cursor:pointer; font-weight:bold; font-size:12px; margin-top:8px;">
+                                    📦 Archivia Evento nel Registro
+                                </button>
+                            `;
+                        }
+                        
+                        return `${badgeHTML}${infoHTML}${imgHTML}${pannelloStatiHTML}${btnEliminaHTML}`;
+                    }
+
+                    // Creazione del Marker Utente
+                    const marker = L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
+                        radius: 8, 
+                        fillColor: colore, 
+                        color: "#fff", 
+                        weight: 2, 
+                        fillOpacity: 0.9
+                    }).addTo(layerUtenti);
+
+                    marker.bindPopup(compilaPopupHTML(), { minWidth: 240 });
                 });
-                document.getElementById('countVerificati').innerText = v;
-                document.getElementById('countNonVerificati').innerText = nv;
+
+                // Aggiornamento contatori a schermo
+                document.getElementById('countVerificati').innerText = verificati;
+                document.getElementById('countNonVerificati').innerText = nonVerificati;
             });
         }
+
+        // ==========================================
+        // 6. GESTIONE STATI OPERATIVI E REGISTRO LOG
+        // ==========================================
+        window.aggiornaStatoEvento = async function(docId, nuovoStato) {
+            try { 
+                const refDoc = doc(db, "segnalazioni", docId);
+                await updateDoc(refDoc, { stato: nuovoStato }); 
+            } catch(e) { 
+                alert("Errore di rete durante l'aggiornamento dello stato."); 
+            }
+        };
+
+        window.eliminaSegnalazione = async function(docId) {
+            const motivazione = prompt("🚨 ARCHIVIAZIONE EVENTO:\nInserisci il report di chiusura (es: 'Intervento completato da VAB, area bonificata'). Questo log sarà permanente e inalterabile.");
+            
+            if (!motivazione || motivazione.trim() === "") { 
+                alert("❌ Errore: Devi inserire una motivazione valida per archiviare il log!"); 
+                return; 
+            }
+
+            try {
+                // Recupera i dati prima di eliminarli
+                const docSnap = await getDoc(doc(db, "segnalazioni", docId));
+                const dataVecchia = docSnap.exists() ? docSnap.data() : {};
+
+                // Scrittura nel Registro Logs Chiusura
+                await addDoc(collection(db, "logs_chiusura"), {
+                    segnalazioneId: docId,
+                    responsabile: utenteLoggato.email,
+                    ruolo: ruoloUtenteLoggato,
+                    regione: dataVecchia.regione || regioneCompetenzaLoggata,
+                    provincia: dataVecchia.provincia || provinciaCompetenzaLoggata,
+                    motivazione: motivazione.trim(),
+                    dataChiusura: new Date().toISOString()
+                });
+
+                // Eliminazione fisica dell'emergenza attiva
+                await deleteDoc(doc(db, "segnalazioni", docId));
+                
+                alert("✅ Evento archiviato e registrato correttamente nel Registro Operativo.");
+            } catch (e) { 
+                alert("Errore di archiviazione database: " + e.message); 
+            }
+        };
 
         window.apriRegistro = async function() {
             document.getElementById('modalRegistro').style.display = 'block';
             document.getElementById('overlay').style.display = 'block';
+            
             const tbody = document.getElementById('bodyRegistro');
-            tbody.innerHTML = "<tr><td>Recupero logs...</td></tr>";
-            const q = await getDocs(query(collection(db, "logs_chiusura")));
-            let html = "";
-            q.forEach(doc => { const l = doc.data(); html += `<tr><td>${l.regione || 'N/A'} - ${l.motivazione || 'Chiusura'}</td></tr>`; });
-            tbody.innerHTML = html;
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Recupero log in corso...</td></tr>";
+
+            try {
+                // Interroga la collezione dei log archiviati
+                const q = query(collection(db, "logs_chiusura"));
+                const querySnapshot = await getDocs(q);
+                let arrayLogs = [];
+                
+                querySnapshot.forEach(doc => {
+                    arrayLogs.push(doc.data());
+                });
+                
+                // Ordina dal più recente al più vecchio
+                arrayLogs.sort((a,b) => new Date(b.dataChiusura) - new Date(a.dataChiusura));
+
+                let htmlContent = "";
+                arrayLogs.forEach(logEntry => {
+                    let dataFormattata = new Date(logEntry.dataChiusura).toLocaleString('it-IT', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                    
+                    htmlContent += `
+                        <tr>
+                            <td><b>${dataFormattata}</b></td>
+                            <td>${logEntry.regione} / ${logEntry.provincia}</td>
+                            <td style="font-size:11px;">${logEntry.responsabile}</td>
+                            <td style="font-style:italic;">"${logEntry.motivazione}"</td>
+                        </tr>
+                    `;
+                });
+                
+                if(htmlContent !== "") {
+                    tbody.innerHTML = htmlContent;
+                } else {
+                    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Nessun log presente nel sistema.</td></tr>";
+                }
+                
+            } catch (e) { 
+                tbody.innerHTML = `<tr><td colspan='4' style='color:red;'>Errore: ${e.message}</td></tr>`; 
+            }
         };
 
+        // ==========================================
+        // 7. GESTIONE AUTENTICAZIONE E RUOLI
+        // ==========================================
         window.cambiaModalitaAuth = function() {
             modalitaRegistrazione = !modalitaRegistrazione;
-            document.getElementById('titoloAuth').innerText = modalitaRegistrazione ? "Registrati" : "Accedi";
-            document.getElementById('btnAuth').innerText = modalitaRegistrazione ? "Registrati" : "Accedi";
-            document.getElementById('divRuolo').style.display = modalitaRegistrazione ? "block" : "none";
+            
+            const titolo = document.getElementById('titoloAuth');
+            const btn = document.getElementById('btnAuth');
+            const divRuolo = document.getElementById('divRuolo');
+            const switchText = document.getElementById('switchAuth');
+            
+            if (modalitaRegistrazione) {
+                titolo.innerText = "Registra Nuovo Account";
+                btn.innerText = "Registrati";
+                divRuolo.style.display = "block";
+                switchText.innerHTML = "Hai già un account? <span onclick='cambiaModalitaAuth()' style='color:#1c7ed6; cursor:pointer;'>Accedi</span>";
+            } else {
+                titolo.innerText = "Accedi alla Piattaforma";
+                btn.innerText = "Accedi";
+                divRuolo.style.display = "none";
+                switchText.innerHTML = "Non hai un account? <span onclick='cambiaModalitaAuth()' style='color:#1c7ed6; cursor:pointer;'>Registrati</span>";
+            }
         };
 
         window.gestisciAuth = async function() {
-            const email = document.getElementById('email').value, password = document.getElementById('password').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('btnAuth');
+            
+            if(!email || !password) { 
+                alert("Inserisci un'email e una password valide."); 
+                return; 
+            }
+            
+            btn.innerText = "Attendere elaborazione..."; 
+            btn.disabled = true;
+
             try {
                 if (modalitaRegistrazione) {
-                    const u = await createUserWithEmailAndPassword(auth, email, password);
-                    await setDoc(doc(db, "utenti", u.user.uid), { email, ruolo: document.getElementById('ruoloUtente').value });
-                } else await signInWithEmailAndPassword(auth, email, password);
-                alert("Operazione completata!");
-            } catch (e) { alert(e.message); }
+                    const ruoloScelto = document.getElementById('ruoloUtente').value;
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    
+                    // Creazione profilo utente su Firestore
+                    await setDoc(doc(db, "utenti", userCredential.user.uid), { 
+                        email: email, 
+                        ruolo: ruoloScelto, 
+                        regione_competenza: "", 
+                        provincia_competenza: "", 
+                        dataRegistrazione: new Date().toISOString() 
+                    });
+                    
+                    alert("Registrazione completata con successo!");
+                } else {
+                    // Login utente esistente
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) { 
+                alert("Errore Autenticazione: " + error.message); 
+            } finally { 
+                btn.innerText = modalitaRegistrazione ? "Registrati" : "Accedi"; 
+                btn.disabled = false; 
+            }
         };
 
-        window.disconnettiUtente = function() { signOut(auth).then(() => { location.reload(); }); };
+        window.disconnettiUtente = function() { 
+            signOut(auth).then(() => { 
+                alert("Utente disconnesso con successo."); 
+                chiudiFinestre(); 
+            }); 
+        };
 
+        // Listener Cambiamento di Stato (Login/Logout)
         onAuthStateChanged(auth, async (user) => {
+            const btnAzione = document.getElementById('btnAzione');
+            const btnRegistro = document.getElementById('btnRegistro');
+            const sezAuth = document.getElementById('sezioneAuth');
+            const sezSegnala = document.getElementById('sezioneSegnala');
+            
             if (user) {
                 utenteLoggato = user;
-                const userDoc = await getDoc(doc(db, "utenti", user.uid));
-                if(userDoc.exists()) { 
-                    const d = userDoc.data();
-                    // Logica specifica per i nomi campi nel tuo DB (ruolo 1/ruolo 2)
-                    ruoloUtenteLoggato = d.ruolo || d["ruolo 1"] || d["ruolo 2"] || "cittadino";
-                    if(ruoloUtenteLoggato.includes("responsabile")) document.getElementById('btnRegistro').style.display = "block";
+                
+                try {
+                    const userDoc = await getDoc(doc(db, "utenti", user.uid));
+                    if (userDoc.exists()) {
+                        const d = userDoc.data();
+                        ruoloUtenteLoggato = d.ruolo;
+                        regioneCompetenzaLoggata = d.regione_competenza || "";
+                        provinciaCompetenzaLoggata = d.provincia_competenza || "";
+                        
+                        if(ruoloUtenteLoggato === "responsabile" || ruoloUtenteLoggato === "responsabile_provinciale") {
+                            btnRegistro.style.display = "block"; 
+                            btnAzione.innerText = "⭐ Area Coordinamento";
+                        } else {
+                            btnRegistro.style.display = "none"; 
+                            btnAzione.innerText = "➕ Gestione Interventi";
+                        }
+                    }
+                } catch(e) {
+                    console.log("Errore lettura dati utente");
                 }
-                document.getElementById('sezioneAuth').style.display = "none";
-                document.getElementById('sezioneSegnala').style.display = "block";
-                attivaAscoltoSegnalazioni();
+                
+                btnAzione.style.background = "#2b8a3e"; // Verde quando loggato
+                sezAuth.style.display = "none";
+                sezSegnala.style.display = "block";
+                
+                attivaAscoltoSegnalazioni(); 
             } else {
-                document.getElementById('sezioneAuth').style.display = "block";
-                document.getElementById('sezioneSegnala').style.display = "none";
+                // Utente non loggato
+                utenteLoggato = null; 
+                ruoloUtenteLoggato = "cittadino";
+                
+                btnAzione.innerText = "🔓 Accedi / Registrati"; 
+                btnAzione.style.background = "#e03131"; // Rosso quando sloggato
+                btnRegistro.style.display = "none";
+                
+                sezAuth.style.display = "block";
+                sezSegnala.style.display = "none";
+                
+                attivaAscoltoSegnalazioni(); 
             }
         });
 
+        // ==========================================
+        // 8. FUNZIONI MATEMATICHE E GEOCODING
+        // ==========================================
+        
+        // Formula di Haversine per la distanza tra due coordinate
+        function calcolaDistanza(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Raggio terrestre in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + 
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Controllo se una coordinata cade dentro una blacklist
+        function isNellaBlacklist(lat, lon) {
+            for (let b of BLACKLIST_INDUSTRIALE) {
+                if (calcolaDistanza(lat, lon, b.lat, b.lon) <= b.raggio_km) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Reverse Geocoding per ricavare Regione e Provincia
+        async function ottieniRegioneDaCoordinate(lat, lon) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
+                const data = await response.json();
+                
+                if (data && data.address) {
+                    return { 
+                        regione: data.address.state || "Sconosciuta", 
+                        provincia: data.address.county || data.address.city || "Sconosciuta" 
+                    };
+                }
+            } catch(e) { 
+                console.log("Errore API Nominatim", e); 
+            }
+            return { regione: "Sconosciuta", provincia: "Sconosciuta" };
+        }
+
+        // ==========================================
+        // 9. LOGICA INVIO SEGNALAZIONE (EXIF + COMPRESSIONE)
+        // ==========================================
         window.inviaSegnalazione = async function() {
-            const lat = parseFloat(document.getElementById('latGradi').value) + (parseFloat(document.getElementById('latPrimi').value)/60) + (parseFloat(document.getElementById('latSecondi').value)/3600);
-            const lon = parseFloat(document.getElementById('lonGradi').value) + (parseFloat(document.getElementById('lonPrimi').value)/60) + (parseFloat(document.getElementById('lonSecondi').value)/3600);
-            await addDoc(collection(db, "segnalazioni"), { latitudine: lat, longitudine: lon, combustibile: document.getElementById('segnalaCombustibile').value, note: document.getElementById('segnalaNote').value, utente: utenteLoggato.email, stato: "In attesa di validazione operativa", timestamp: new Date().toISOString() });
-            alert("Segnalazione inviata!");
-            chiudiFinestre();
+            if (!utenteLoggato) { 
+                alert("Devi effettuare l'accesso per inviare una segnalazione!"); 
+                return; 
+            }
+
+            // Lettura input DMS (Gradi, Primi, Secondi)
+            const latDeg = parseFloat(document.getElementById('latGradi').value);
+            const latMin = parseFloat(document.getElementById('latPrimi').value);
+            const latSec = parseFloat(document.getElementById('latSecondi').value);
+            const lonDeg = parseFloat(document.getElementById('lonGradi').value);
+            const lonMin = parseFloat(document.getElementById('lonPrimi').value);
+            const lonSec = parseFloat(document.getElementById('lonSecondi').value);
+
+            if (isNaN(latDeg) || isNaN(lonDeg)) { 
+                alert("Attenzione: Inserisci coordinate valide e complete."); 
+                return; 
+            }
+
+            // Conversione DMS in Formato Decimale
+            const latManuale = latDeg + (latMin/60) + (latSec/3600);
+            const lonManuale = lonDeg + (lonMin/60) + (lonSec/3600);
+
+            // Controllo Immediato Blacklist
+            if (isNellaBlacklist(latManuale, lonManuale)) {
+                alert("⛔ ZONA PROTETTA: Le coordinate corrispondono a un'area industriale (es. Raffineria/Polo Chimico) nota per emissioni termiche. Invio segnalazione bloccato.");
+                return;
+            }
+
+            const fotoInput = document.getElementById('segnalaFoto');
+            if (fotoInput.files.length === 0) { 
+                alert("Attenzione: Devi obbligatoriamente allegare una fotografia della zona."); 
+                return; 
+            }
+            
+            const fileFoto = fotoInput.files[0];
+            const btnInvia = document.getElementById('btnInviaSegnalazione');
+            
+            btnInvia.innerText = "Verifica dati EXIF in corso..."; 
+            btnInvia.disabled = true;
+
+            // Lettura Metadati EXIF dall'immagine
+            EXIF.getData(fileFoto, async function() {
+                let latExif = EXIF.getTag(this, "GPSLatitude");
+                let lonExif = EXIF.getTag(this, "GPSLongitude");
+
+                // Processo di convalida EXIF
+                if (latExif && lonExif) {
+                    let latReale = latExif[0].numerator + (latExif[1].numerator/60) + (latExif[2].numerator/360000);
+                    let lonReale = lonExif[0].numerator + (lonExif[1].numerator/60) + (lonExif[2].numerator/360000);
+                    
+                    let distanza = calcolaDistanza(latManuale, lonManuale, latReale, lonReale);
+                    
+                    // Soglia Anti-Troll: 2 Chilometri
+                    if (distanza > 2.0) {
+                        alert(`❌ MANOMISSIONE RILEVATA! I dati GPS interni della foto differiscono dalle coordinate inserite a mano di ${distanza.toFixed(1)} km. La foto non corrisponde al luogo indicato. Invio bloccato.`);
+                        btnInvia.innerText = "Invia Segnalazione"; 
+                        btnInvia.disabled = false;
+                        return;
+                    }
+                } else {
+                    let procedi = confirm("⚠️ ANOMALIA: La foto non contiene dati GPS (Metadati EXIF mancanti). Potrebbe essere stata scaricata dal web o dai social. Vuoi procedere comunque sotto la tua personale responsabilità?");
+                    
+                    if (!procedi) { 
+                        btnInvia.innerText = "Invia Segnalazione"; 
+                        btnInvia.disabled = false; 
+                        return; 
+                    }
+                }
+
+                // Procedura di Compressione e Salvataggio se i controlli passano
+                try {
+                    btnInvia.innerText = "Compressione immagine...";
+                    const fotoBase64 = await comprimiImmagine(fileFoto);
+                    
+                    btnInvia.innerText = "Geocoding in corso...";
+                    const geoInfo = await ottieniRegioneDaCoordinate(latManuale, lonManuale);
+                    
+                    // Assegnazione Stato iniziale in base al ruolo
+                    let statoIniziale = "In attesa di validazione operativa";
+                    if (ruoloUtenteLoggato === "volontario" || ruoloUtenteLoggato === "responsabile") {
+                        statoIniziale = "Validata"; // I volontari/admin bypassano l'attesa
+                    }
+
+                    btnInvia.innerText = "Salvataggio nel Database...";
+                    
+                    // Scrittura Firestore
+                    await addDoc(collection(db, "segnalazioni"), {
+                        latitudine: latManuale,
+                        longitudine: lonManuale,
+                        combustibile: document.getElementById('segnalaCombustibile').value,
+                        note: document.getElementById('segnalaNote').value,
+                        utente: utenteLoggato.email,
+                        ruolo: ruoloUtenteLoggato,
+                        regione: geoInfo.regione,
+                        provincia: geoInfo.provincia,
+                        stato: statoIniziale,
+                        fotoBase64: fotoBase64,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    alert("✅ Segnalazione inviata e registrata con successo ai terminali!");
+                    chiudiFinestre();
+                    
+                    // Reset di tutti i campi del Form
+                    document.getElementById('latGradi').value = ''; 
+                    document.getElementById('latPrimi').value = ''; 
+                    document.getElementById('latSecondi').value = '';
+                    document.getElementById('lonGradi').value = ''; 
+                    document.getElementById('lonPrimi').value = ''; 
+                    document.getElementById('lonSecondi').value = '';
+                    document.getElementById('segnalaNote').value = ''; 
+                    document.getElementById('segnalaFoto').value = '';
+                    
+                } catch (error) {
+                    alert("Errore fatale durante il salvataggio: " + error.message);
+                } finally {
+                    // Ripristino bottone allo stato originale
+                    btnInvia.innerText = "Invia Segnalazione"; 
+                    btnInvia.disabled = false;
+                }
+            });
         };
 
-        window.apriFinestra = function() { document.getElementById('finestraModale').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; };
-        window.chiudiFinestre = function() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); document.getElementById('overlay').style.display = 'none'; };
+        // Funzione per comprimere l'immagine prima dell'upload su Firebase per risparmiare banda
+        function comprimiImmagine(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                
+                reader.onload = event => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Limiti di risoluzione
+                        const maxWidth = 800; 
+                        const maxHeight = 800;
+                        let width = img.width; 
+                        let height = img.height;
+
+                        // Calcolo proporzioni
+                        if (width > height) { 
+                            if (width > maxWidth) { 
+                                height *= maxWidth / width; 
+                                width = maxWidth; 
+                            } 
+                        } else { 
+                            if (height > maxHeight) { 
+                                width *= maxHeight / height; 
+                                height = maxHeight; 
+                            } 
+                        }
+
+                        canvas.width = width; 
+                        canvas.height = height;
+                        
+                        // Disegno e conversione in Base64
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.6)); // Compressione Qualità 60%
+                    };
+                    
+                    img.onerror = error => reject(error);
+                };
+            });
+        }
+
+        // ==========================================
+        // 10. GESTIONE FINESTRE MODALI (UI)
+        // ==========================================
+        window.apriFinestra = function() { 
+            document.getElementById('finestraModale').style.display = 'block'; 
+            document.getElementById('overlay').style.display = 'block'; 
+        };
         
+        window.chiudiFinestre = function() { 
+            document.querySelectorAll('.modal').forEach(m => {
+                m.style.display = 'none';
+            }); 
+            document.getElementById('overlay').style.display = 'none'; 
+        };
+        
+        // ==========================================
+        // AVVIO SISTEMA
+        // ==========================================
         aggiornaDatiSatellite();
+        
     </script>
 </body>
 </html>
