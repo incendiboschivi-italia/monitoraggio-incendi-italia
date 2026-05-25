@@ -419,7 +419,7 @@
 
         // --- GESTIONE E FILTRAGGIO ORARIO HOTSPOT SAT ---
         window.aggiornaDatiSatellite = function() {
-            const oreFiltro Selezionate = parseInt(document.getElementById('filtroOreNasa').value);
+            const oreFiltroSelezionate = parseInt(document.getElementById('filtroOreNasa').value);
             const adesso = Date.now();
 
             fetch('incendi.json?t=' + adesso)
