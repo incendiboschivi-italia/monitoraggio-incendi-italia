@@ -132,7 +132,7 @@
             width: 92%;
             max-width: 420px;
             max-height: 85vh; 
-            overflow-y: auto;
+            overflow-y: auto; 
         }
         
         /********* STILE TABELLA REGISTRO HISTORIC *********/
@@ -251,6 +251,7 @@
     </div>
 
     <button class="btn-controllo" id="btnAzione" onclick="apriFinestra()">🔓 Accedi / Registrati</button>
+    
     <button class="btn-registro-responsabile" id="btnRegistroAperto" onclick="apriRegistroReport()">📋 Registro Report Regionali</button>
 
     <div class="box-contatori">
@@ -267,6 +268,7 @@
     <div class="modal-overlay" id="overlay" onclick="chiudiFinestra()"></div>
     
     <div class="modal" id="finestraModale">
+        
         <div id="sezioneAuth">
             <h3 id="titoloAuth">Accedi alla Piattaforma</h3>
             <input type="email" id="email" placeholder="La tua Email">
@@ -326,6 +328,7 @@
 
             <textarea id="segnalaNote" placeholder="Note operative (es. Fumo denso, vento...)" rows="3"></textarea>
             <button id="btnInviaSegnalazione" onclick="inviaSegnalazione()">Invia Segnalazione</button>
+            
             <button id="btnLogout" onclick="disconnettiUtente()" style="background: #e03131; margin-top: 15px;">Disconnetti Account</button>
         </div>
 
@@ -373,6 +376,7 @@
           messagingSenderId: "806160880982",
           appId: "1:806160880982:web:fd4747fd0841ad5066f2f7"
         };
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         auth.languageCode = 'it'; 
@@ -425,7 +429,7 @@
         ];
 
         function getDistanzaKm(lat1, lon1, lat2, lon2) {
-            const R = 6371;
+            const R = 6371; 
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -437,8 +441,8 @@
         const mappaScura = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO', maxZoom: 20 });
         const mappaSatellitare = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 });
         const mappaTopografica = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenTopoMap', maxZoom: 17 });
+
         const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [mappaScura] });
-        
         const layerNasa = L.layerGroup().addTo(map);
         const layerUtenti = L.layerGroup().addTo(map);
         const layerBlacklistDebug = L.layerGroup().addTo(map); 
@@ -528,12 +532,13 @@
                                         break;
                                     }
                                 }
-                                if (inZonaIndustriale) return;
+                                if (inZonaIndustriale) return; 
+
                                 totaliNasa++; 
                                 let temp = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
                                 let celsius = temp ? (parseFloat(temp) - 273.15).toFixed(1) + " °C" : 'N/D';
                                 let infoOra = ponto.acq_time ? `<br><b>Orario Passaggio:</b> ${ponto.acq_time.padStart(4, '0').replace(/(..)$/,':$1')} UTC` : '';
-                                
+
                                 L.circleMarker([parseFloat(ponto.latitude), parseFloat(ponto.longitude)], {
                                     radius: 6, fillColor: "#ff1a1a", color: "#ff8888", weight: 1.5, opacity: 0.9, fillOpacity: 0.75
                                 }).addTo(layerNasa).bindPopup(`<strong>Satellite NASA FIRMS</strong><br><b>Temp:</b> ${celsius}${infoOra}`);
@@ -551,6 +556,7 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 utenteLoggato = user;
+                // Caricamento dei dettagli del ruolo dal Database Utenti
                 const docRef = doc(db, "utenti", user.uid);
                 const docSnap = await getDoc(docRef);
                 
@@ -566,7 +572,8 @@
                 document.getElementById('btnAzione').innerText = "📍 Pannello Segnalazione";
                 document.getElementById('sezioneAuth').style.display = "none";
                 document.getElementById('sezioneSegnala').style.display = "block";
-                
+
+                // RENDI VISIBILE IL BOTTONE DEL REGISTRO SOLO AI RESPONSABILI REGIONALI
                 if (ruoloUtenteLoggato === "responsabile") {
                     document.getElementById('btnRegistroAperto').style.display = "flex";
                 } else {
@@ -585,7 +592,7 @@
             }
         });
 
-        // --- ATTIVA ASCOLTO SEGNALAZIONI ATTIVE CON DISPATCHER INTEGRATO ---
+        // --- ATTIVA ASCOLTO SEGNALAZIONI ATTIVE CON INTEGRAZIONE GEOCODING INTERROTTA ---
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
@@ -596,14 +603,6 @@
                     const dati = docSnap.data();
                     const docId = docSnap.id; 
                     
-                    // Salvataggio globale dei dati per il Dispatcher
-                    window.mappaSegnalazioni = window.mappaSegnalazioni || {};
-                    window.mappaSegnalazioni[docId] = {
-                        ...dati,
-                        regione: dati.regione || "Analisi...",
-                        provincia: dati.provincia || "Analisi..."
-                    };
-
                     if (dati.stato === "Validata") {
                         totaliFirebaseVerificati++;
                     } else {
@@ -614,7 +613,6 @@
                     
                     function compilaPopupHTML(regioneRilevata, provinciaRilevata, mostraTastoCancella) {
                         let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
-                        
                         let badge = dati.stato === "In attesa di validazione operativa" 
                             ? `<div style="background:#fff9db; color:#e67e22; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #ffe066;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>`
                             : `<div style="background:#ebfbee; color:#2b8a3e; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #8ce99a;">✅ VALIDATA</div>`;
@@ -626,9 +624,6 @@
                         if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`;
                         infoDettagliata += `<b>Inviato da:</b> ${dati.utente || 'Utente registrato'}</span>`;
 
-                        // Tasto Dispatcher
-                        let btnCopia = `<button onclick="window.copiaStringaOperativa('${docId}')" style="background: #1098ad; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; margin-top: 8px; display: block; text-align: center;">📋 Copia Stringa Dispatcher</button>`;
-
                         let btnElimina = "";
                         if (mostraTastoCancella) {
                             let etichettaCompetenza = (ruoloUtenteLoggato === "responsabile") ? `Regione ${regioneRilevata}` : `Prov. ${provinciaRilevata}`;
@@ -639,7 +634,7 @@
                                 </button>
                             `;
                         }
-                        return `${badge}${infoDettagliata}${img}${btnCopia}${btnElimina}`;
+                        return `${badge}${infoDettagliata}${img}${btnElimina}`;
                     }
 
                     const marker = L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
@@ -667,6 +662,7 @@
                                     stringaRegione = geoData.address.state || geoData.address.region || "Non rilevata";
                                     stringaProvincia = geoData.address.county || geoData.address.suburb || "Non rilevata";
                                     
+                                    // Salva sul database per non rifare la chiamata reverse
                                     await setDoc(doc(db, "segnalazioni", docId), {
                                         regione: stringaRegione,
                                         provincia: stringaProvincia
@@ -685,6 +681,7 @@
         // --- SISTEMA DI CHIUSURA INCENDIO ED ARCHIVIAZIONE REGISTRO ---
         window.eliminaSegnalazione = async function(docId) {
             try {
+                // Recupera i dati correnti prima di archiviare
                 const docRef = doc(db, "segnalazioni", docId);
                 const docSnap = await getDoc(docRef);
 
@@ -694,12 +691,15 @@
                 }
 
                 const datiIncendio = docSnap.data();
+
+                // Richiesta Input Dettagliati per il Registro Report
                 const operatoreSpento = prompt("Chi ha spento l'incendio? \n(Es: Intervento effettuato da VAB Pistoia, bonificato)", "VAB Pistoia");
-                if (operatoreSpento === null) return; 
+                if (operatoreSpento === null) return; // Operazione annullata dal responsabile
 
                 const motivazioneChiusura = prompt("Inserisci la nota tecnica/motivazione per il registro:", "Intervento effettuato con successo e area bonificata totalmente.");
                 if (motivazioneChiusura === null) return;
 
+                // 1. Scrivi l'evento storico nella nuova collezione 'registro_report'
                 await addDoc(collection(db, "registro_report"), {
                     dataChiusura: new Date().toLocaleString("it-IT"),
                     timestampChiusura: Date.now(),
@@ -713,7 +713,8 @@
                     motivazione: motivazioneChiusura,
                     responsabileArchiviazione: utenteLoggato.email
                 });
-                
+
+                // 2. Elimina la segnalazione attiva per pulire la mappa globale
                 await deleteDoc(docRef);
                 alert("Incendio chiuso con successo ed archiviato nel Registro Report!");
 
@@ -729,7 +730,9 @@
             
             const corpoTabella = document.getElementById('corpoTabellaReport');
             corpoTabella.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:15px; color:#666;">Caricamento storico in corso...</td></tr>`;
+
             try {
+                // Prende i report ordinati dal più recente
                 const q = query(collection(db, "registro_report"), orderBy("timestampChiusura", "desc"));
                 const querySnapshot = await getDocs(q);
                 
@@ -747,7 +750,7 @@
                             <td>
                                 📍 <b>${r.regione}</b> (${r.provincia})<br>
                                 <span style="font-size:10px; color:#666;">Lat/Lon: ${r.latitudine}, ${r.longitudine}</span><br>
-                                 <span style="font-size:10px; color:#444;">Tipo: ${r.combustibile}</span>
+                                <span style="font-size:10px; color:#444;">Tipo: ${r.combustibile}</span>
                             </td>
                             <td><span style="background:#e3fafc; color:#0b7285; padding:3px 6px; border-radius:3px; font-weight:bold;">${r.chiHaSpento}</span></td>
                             <td style="color:#2b8a3e; font-weight:500;">"${r.motivazione}"<br><small style="color:#777; font-size:10px;">Archiviato da: ${r.responsabileArchiviazione}</small></td>
@@ -773,6 +776,7 @@
             document.getElementById('modaleRegistroReport').style.display = 'none';
         }
 
+        // Metodi globali per l'interfaccia window (necessari con script type="module")
         window.cambiaModalitaAuth = function() {
             modalitaRegistrazione = !modalitaRegistrazione;
             if (modalitaRegistrazione) {
@@ -801,6 +805,7 @@
             try {
                 if (modalitaRegistrazione) {
                     const creds = await createUserWithEmailAndPassword(auth, mail, pass);
+                    // Registrazione ruolo nel DB Firestore
                     await setDoc(doc(db, "utenti", creds.user.uid), {
                         email: mail,
                         ruolo: ruoloSel,
@@ -825,7 +830,7 @@
                 await sendPasswordResetEmail(auth, mail);
                 alert("Email di ripristino password inviata correttamente.");
             } catch(e) { alert("Errore: " + e.message); }
-            }
+        }
 
         window.disconnettiUtente = async function() {
             try {
@@ -833,19 +838,6 @@
                 alert("Profilo disconnesso.");
                 chiudiFinestra();
             } catch(e) { alert("Errore logout: " + e.message); }
-            }
-
-        // Estrazione GPS
-        async function estraiGpsDaFoto(file) {
-            return new Promise((resolve) => {
-                if(!file) return resolve(null);
-                EXIF.getData(file, function() {
-                    const lat = EXIF.getTag(this, "GPSLatitude");
-                    const lon = EXIF.getTag(this, "GPSLongitude");
-                    if(lat && lon) resolve({lat, lon});
-                    else resolve(null);
-                });
-            });
         }
 
         // --- SISTEMA DI INVIO SEGNALAZIONE ATTIVA (CON TRASFORMAZIONE EXIF) ---
@@ -867,18 +859,24 @@
                 return;
             }
 
+            // Calcolo coordinate decimali da DMS
             const latDec = gLat + (pLat / 60) + (sLat / 3600);
             const lonDec = gLon + (pLon / 60) + (sLon / 3600);
             const dmsLabel = `${gLat}°${pLat}'${sLat}"N - ${gLon}°${pLon}'${sLon}"E`;
-            
-            try {
-                const gpsFoto = await estraiGpsDaFoto(inputFoto);
-                if(gpsFoto) { console.log("GPS Rilevato:", gpsFoto); }
 
+            try {
+                // Estrattore EXIF per sicurezza incrociata coordinate
+                const gpsFoto = await estraiGpsDaFoto(inputFoto);
+                if(gpsFoto) {
+                    console.log("GPS Rilevato nei metadati foto originale:", gpsFoto);
+                }
+
+                // Trasformazione base64 string
                 const reader = new FileReader();
                 reader.readAsDataURL(inputFoto);
                 reader.onloadend = async () => {
                     const base64Data = reader.result;
+
                     await addDoc(collection(db, "segnalazioni"), {
                         latitudine: latDec.toFixed(6),
                         longitudine: lonDec.toFixed(6),
@@ -899,68 +897,6 @@
             } catch(err) {
                 alert("Errore invio dati Firebase: " + err.message);
             }
-        }
-        // --- SISTEMA DISPATCHER COMPATIBILE ANCHE IN LOCALE ---
-        window.copiaStringaOperativa = function(docId) {
-            const dati = window.mappaSegnalazioni ? window.mappaSegnalazioni[docId] : null;
-            if (!dati) {
-                alert("Errore: Dati della segnalazione non trovati nel registro locale.");
-                return;
-            }
-
-            const dataOra = new Date(dati.timestamp || Date.now()).toLocaleString("it-IT");
-            
-            // Link ottimizzato per aprire l'app di Google Maps al volo su telefono
-            const googleMapsLink = `https://maps.google.com/?q=${dati.latitudine},${dati.longitudine}`;
-
-            const testoDaCopiare = `🚨 *ALLERTA INCENDIO BOSCHIVO* 🚨\n` +
-                `---------------------------------------------\n` +
-                `📅 *Data/Ora:* ${dataOra}\n` +
-                `📍 *Provincia:* ${dati.provincia || 'N/D'} (${dati.regione || 'N/D'})\n` +
-                `🧭 *Coordinate DMS:* ${dati.dms || 'N/D'}\n` +
-                `🌐 *Lat/Lon:* ${dati.latitudine}, ${dati.longitudine}\n` +
-                `🌿 *Vegetazione:* ${dati.combustibile || 'Non specificata'}\n` +
-                `📸 *Foto allegata:* Consultare la WebApp\n` +
-                `📝 *Note:* ${dati.note || 'Nessuna nota aggiuntiva'}\n` +
-                `🗺️ *Link Navigatore (Google Maps):* ${googleMapsLink}\n` +
-                `---------------------------------------------`;
-
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(testoDaCopiare)
-                    .then(() => {
-                        alert("🚀 Stringa operativa copiata negli appunti!");
-                    })
-                    .catch(err => {
-                        copiaFallback(testoDaCopiare);
-                    });
-            } else {
-                copiaFallback(testoDaCopiare);
-            }
-        };
-
-        function copiaFallback(testo) {
-            const textArea = document.createElement("textarea");
-            textArea.value = testo;
-            textArea.style.position = "fixed"; 
-            textArea.style.top = "0";
-            textArea.style.left = "0";
-            textArea.style.opacity = "0";
-            document.body.appendChild(textArea);
-            
-            textArea.focus();
-            textArea.select();
-            
-            try {
-                const successo = document.execCommand('copy');
-                if (successo) {
-                    alert("🚀 Stringa operativa copiata negli appunti (Modalità Alternativa)!");
-                } else {
-                    console.log(testo);
-                }
-            } catch (err) {
-                console.error(err);
-            }
-            document.body.removeChild(textArea);
         }
 
         // Inizializzazione Mappa Globale
