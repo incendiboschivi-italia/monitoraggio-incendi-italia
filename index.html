@@ -593,6 +593,15 @@
         });
 
         // --- ATTIVA ASCOLTO SEGNALAZIONI ATTIVE CON INTEGRAZIONE GEOCODING INTERROTTA ---
+        // Inizializza il registro globale se non esiste
+window.mappaSegnalazioni = window.mappaSegnalazioni || {};
+
+// Salva i dati correnti associandoli all'ID del documento Firebase
+window.mappaSegnalazioni[docId] = {
+    ...dati,
+    regione: dati.regione || "Analisi...",
+    provincia: dati.provincia || "Analisi..."
+};
         function attivaAscoltoSegnalazioni() {
             onSnapshot(collection(db, "segnalazioni"), (querySnapshot) => {
                 layerUtenti.clearLayers();
@@ -611,38 +620,31 @@
 
                     let colore = dati.stato === "In attesa di validazione operativa" ? "#e67e22" : "#fab005";
                     
-                    function compilaPopupHTML(regioneRilevata, provinciaRilevata, mostraTastoCancella) { 
-                        let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
-                        let badge = dati.stato === "In attesa di validazione operativa" ? `<div style="background:#fff9db; color:#e67e22; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #ffe066;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>` : `<div style="background:#ebfbee; color:#2b8a3e; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #8ce99a;">✅ VALIDATA</div>`;
-                        let infoDettagliata = `<span style="font-size:13px; line-height: 1.5;"><b>Regione:</b> ${regioneRilevata}<br><b>Provincia:</b> ${provinciaRilevata}<br>`; 
-                        if (dati.dms) infoDettagliata += `<b>Coordinate DMS:</b> ${dati.dms}<br>`;
-                        if (dati.combustibile) infoDettagliata += `<b>Vegetazione:</b> ${dati.combustibile}<br>`; 
-                        if (dati.latitudine && dati.longitudine) infoDettagliata += `<b>Lat/Lon:</b> ${dati.latitudine}, ${dati.longitudine}<br>`;
-                        if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`; 
-                        infoDettagliata += `<b>Inviato da:</b> ${dati.utente || 'Utente registrato'}</span>`; 
-                        
-                        // Creazione sicura del payload per evitare conflitti con apici (DMS) e file enormi (Base64)
-                        let payloadSicuro = encodeURIComponent(JSON.stringify({
-                            lat: dati.latitudine,
-                            lon: dati.longitudine,
-                            dms: dati.dms,
-                            comb: dati.combustibile
-                        }));
-                        
-                        // Bottone Copia Stringa Operativa Dispatcher
-                        let btnDispatcher = `
-                            <button onclick="copiaStringaOperativa('${payloadSicuro}', '${encodeURIComponent(regioneRilevata)}', '${encodeURIComponent(provinciaRilevata)}')" style="background: #2b8a3e; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; margin-top: 10px; display:flex; justify-content:center; align-items:center; gap:6px;">
-                                📱 Copia Stringa Operativa
-                            </button>
-                        `;
+                    function compilaPopupHTML(regioneRilevata, provinciaRilevata, mostraTastoCancella, docId) {
+    let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
+    
+    let badge = dati.stato === "In attesa di validazione operativa" ?
+        `<div style="background:#fff9db; color:#e67e22; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #ffe066;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>` : 
+        `<div style="background:#ebfbee; color:#2b8a3e; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #8ce99a;">✅ VALIDATA</div>`;
+    
+    let infoDettagliata = `<span style="font-size:13px; line-height: 1.5;"><b>Regione:</b> ${regioneRilevata}<br><b>Provincia:</b> ${provinciaRilevata}<br>`; 
+    if (dati.dms) infoDettagliata += `<b>Coordinate DMS:</b> ${dati.dms}<br>`;
+    if (dati.combustibile) infoDettagliata += `<b>Vegetazione:</b> ${dati.combustibile}<br>`; 
+    if (dati.latitudine && dati.longitudine) infoDettagliata += `<b>Lat/Lon:</b> ${dati.latitudine}, ${dati.longitudine}<br>`;
+    if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`; 
+    infoDettagliata += `<b>Inviato da:</b> ${dati.utente || 'Utente registrato'}</span>`;
+    
+    // NUOVO: Pulsante copia stringa operativa con formattazione per canali radio/chat
+    let btnCopia = `<button onclick="window.copiaStringaOperativa('${docId}')" style="background: #1098ad; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; margin-top: 8px; display: block; text-align: center;">📋 Copia Stringa Dispatcher</button>`;
 
-                        let btnElimina = "";
-                        if (mostraTastoCancella) { 
-                            let etichettaCompetenza = (ruoloUtenteLoggato === "responsabile") ? `Regione ${regioneRilevata}` : `Prov. ${provinciaRilevata}`;
-                            btnElimina = ` <hr style="margin: 12px 0; border: 0; border-top: 1px solid #dee2e6;"> <button onclick="eliminaSegnalazione('${docId}')" style="background: #c92a2a; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;"> 🗑 Chiudi / Archivia (${etichettaCompetenza}) </button> `;
-                        } 
-                        return `${badge}${infoDettagliata}${img}${btnDispatcher}${btnElimina}`; 
-                    }
+    let btnElimina = "";
+    if (mostraTastoCancella) { 
+        let etichettaCompetenza = (ruoloUtenteLoggato === "responsabile") ? `Regione ${regioneRilevata}` : `Prov. ${provinciaRilevata}`;
+        btnElimina = ` <hr style="margin: 12px 0; border: 0; border-top: 1px solid #dee2e6;"> <button onclick="eliminaSegnalazione('${docId}')" style="background: #c92a2a; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;"> 🗑 Chiudi / Archivia (${etichettaCompetenza}) </button> `;
+    } 
+    
+    return `${badge}${infoDettagliata}${img}${btnCopia}${btnElimina}`; 
+}
                     const marker = L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
                         radius: 7, fillColor: colore, color: "#fff", weight: 2, fillOpacity: 0.85
                     }).addTo(layerUtenti);
@@ -727,6 +729,76 @@
                 }
 
                 const datiIncendio = docSnap.data();
+                // ... fine della funzione inviaSegnalazione (vecchie righe 479-480)
+                    alert("Segnalazione caricata sul server con successo!");
+                    chiudiFinestra();
+                };
+            } catch(err) {
+                alert("Errore invio dati Firebase: " + err.message);
+            }
+        }
+
+        // ==========================================
+        // 🌟 INCOLLA IL 3° BLOCCO DA QUI (Ex riga 481)
+        // ==========================================
+        window.copiaStringaOperativa = function(docId) {
+            const dati = window.mappaSegnalazioni ? window.mappaSegnalazioni[docId] : null;
+            if (!dati) {
+                alert("Errore: Dati della segnalazione non trovati nel registro locale.");
+                return;
+            }
+
+            const dataOra = new Date(dati.timestamp || Date.now()).toLocaleString("it-IT");
+            const googleMapsLink = `https://www.google.com/maps?q=${dati.latitudine},${dati.longitudine}`;
+
+            const testoDaCopiare = `🚨 *ALLERTA INCENDIO - MONITORAGGIO ITALIA* 🚨\n` +
+                `---------------------------------------------\n` +
+                `📅 *Data/Ora:* ${dataOra}\n` +
+                `📍 *Localizzazione:* Regione ${dati.regione}, Provincia ${dati.provincia}\n` +
+                `🌐 *Coord. Decimali:* ${dati.latitudine}, ${dati.longitudine}\n` +
+                `🧭 *Coord. DMS:* ${dati.dms || 'N/D'}\n` +
+                `🗺️ *Google Maps:* ${googleMapsLink}\n` +
+                `🌿 *Vegetazione:* ${dati.combustibile || 'Non specificata'}\n` +
+                `👤 *Segnalato da:* ${dati.utente || 'Utente registrato'}\n` +
+                `⚠️ *Stato:* ${dati.stato}\n` +
+                `📝 *Note:* ${dati.note || 'Nessuna nota aggiuntiva'}\n` +
+                `---------------------------------------------`;
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(testoDaCopiare)
+                    .then(() => { alert("🚀 Stringa operativa copiata negli appunti!"); })
+                    .catch(err => { copiaFallback(testoDaCopiare); });
+            } else {
+                copiaFallback(testoDaCopiare);
+            }
+        };
+
+        function copiaFallback(testo) {
+            const textArea = document.createElement("textarea");
+            textArea.value = testo;
+            textArea.style.position = "fixed"; 
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successo = document.execCommand('copy');
+                if (successo) { alert("🚀 Stringa operativa copiata (Modalità Locale)!"); }
+                else { console.log(testo); }
+            } catch (err) { console.error(err); }
+            document.body.removeChild(textArea);
+        }
+        // ==========================================
+        // END 3° BLOCCO
+        // ==========================================
+
+        // Inizializzazione Mappa Globale (Questa riga scala in basso)
+        window.aggiornaDatiSatellite(); [cite: 481]
+    </script> [cite: 482]
+</body> [cite: 482]
+</html> [cite: 482]
 
                 // Richiesta Input Dettagliati per il Registro Report
                 const operatoreSpento = prompt("Chi ha spento l'incendio? \n(Es: Intervento effettuato da VAB Pistoia, bonificato)", "VAB Pistoia");
