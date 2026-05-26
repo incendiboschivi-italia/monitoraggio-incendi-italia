@@ -7,8 +7,6 @@
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
-    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
-    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body, html { height: 100%; width: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; }
@@ -62,39 +60,6 @@
             font-size: 11px;
             min-width: 28px;
             text-align: center;
-        }
-
-        /* Filtro Temporale NASA */
-        .box-filtro-tempo {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            background: rgba(36, 36, 36, 0.9);
-            padding: 6px 12px;
-            border-radius: 20px;
-            border: 1px solid #e03131;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: white;
-            font-size: 13px;
-        }
-        .box-filtro-tempo select {
-            background: #1a1a1a;
-            color: white;
-            border: 1px solid #555;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            outline: none;
-        }
-        .box-filtro-tempo select:focus {
-            border-color: #e03131;
         }
 
         /* Finestra Modale */
@@ -177,7 +142,6 @@
         @media (max-width: 600px) {
             .btn-controllo { top: auto; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; text-align: center; font-size: 16px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
             .box-contatori { top: 80px; left: 10px; min-width: 140px; padding: 8px 10px; }
-            .box-filtro-tempo { width: 90%; top: 12px; justify-content: space-between; }
             .inputs-dms input { padding: 6px 2px; font-size: 12px; }
             .info.legend { padding: 10px; max-width: 200px; margin-bottom: 80px; }
             .legend h4 { font-size: 12px; margin-bottom: 5px; }
@@ -188,16 +152,6 @@
     </style>
 </head>
 <body>
-
-    <div class="box-filtro-tempo">
-        <span>🛰️ Hotspot NASA:</span>
-        <select id="filtroOreNasa" onchange="aggiornaDatiSatellite()">
-            <option value="3">Ultime 3 Ore</option>
-            <option value="12">Ultime 12 Ore</option>
-            <option value="24" selected>Ultime 24 Ore</option>
-            <option value="48">Ultime 48 Ore</option>
-        </select>
-    </div>
 
     <button class="btn-controllo" id="btnAzione" onclick="apriFinestra()">🔓 Accedi / Registrati</button>
 
@@ -224,7 +178,7 @@
                 <label style="font-size: 12px; font-weight: bold; color: #495057; display: block; margin-bottom: 4px;">Tipo di Profilo Operativo</label>
                 <select id="ruoloUtente">
                     <option value="cittadino">Cittadino / Utente Comune</option>
-                    <option value="volontario">Volontario Attivo (Richiede Verifica)</option>
+                    <option value="volontario">Volontario Attivo (Richiede Verification)</option>
                 </select>
             </div>
 
@@ -314,7 +268,7 @@
         let totaliFirebaseVerificati = 0;
         let totaliFirebaseNonVerificati = 0;
 
-        // --- LISTA BLACKLIST REALE ---
+        // --- LISTA BLACKLIST AGGIORNATA E CONVERTITA IN DECIMALE ---
         const blacklistIndustrie = [
             { nome: "Priolo Gargallo (SR) - Petrolchimico", lat: 37.13, lon: 15.21, raggioKm: 3.5 },
             { nome: "Sannazzaro de' Burgondi (PV) - Raffineria ENI", lat: 44.91, lon: 8.89, raggioKm: 3.5 },
@@ -367,25 +321,8 @@
         const map = L.map('map', { center: [42.5, 12.5], zoom: 6, layers: [mappaScura] });
         const layerNasa = L.layerGroup().addTo(map);
         const layerUtenti = L.layerGroup().addTo(map);
-        const layerBlacklistDebug = L.layerGroup().addTo(map); 
 
-        L.control.layers({ 
-            "Mappa Scura": mappaScura, 
-            "Vista Satellitare": mappaSatellitare, 
-            "Vista Topografica": mappaTopografica 
-        }, {
-            "🔴 Zone Protette (Blacklist)": layerBlacklistDebug
-        }).addTo(map);
-
-        blacklistIndustrie.forEach(ind => {
-            L.circle([ind.lat, ind.lon], {
-                radius: ind.raggioKm * 1000, 
-                color: '#e03131',
-                weight: 1.5,
-                fillColor: '#f03e3e',
-                fillOpacity: 0.15
-            }).addTo(layerBlacklistDebug).bindPopup(`<b>ZONA PROTETTA AIB</b><br><b>Sito:</b> ${ind.nome}<br><b>Filtro tolleranza:</b> ${ind.raggioKm} Km`);
-        });
+        L.control.layers({ "Mappa Scura": mappaScura, "Vista Satellitare": mappaSatellitare, "Vista Topografica": mappaTopografica }).addTo(map);
 
         const legend = L.control({ position: 'bottomleft' });
         legend.onAdd = function () {
@@ -418,12 +355,8 @@
             document.getElementById('countNonVerificati').innerText = totaliFirebaseNonVerificati;
         }
 
-        // --- GESTIONE E FILTRAGGIO ORARIO HOTSPOT SAT (CORRETTO) ---
-        window.aggiornaDatiSatellite = function() {
-            const oreFiltroSelezionate = parseInt(document.getElementById('filtroOreNasa').value);
-            const adesso = Date.now();
-
-            fetch('incendi.json?t=' + adesso)
+        function aggiornaDatiSatellite() {
+            fetch('incendi.json?t=' + Date.now())
                 .then(response => response.json())
                 .then(punti => {
                     layerNasa.clearLayers();
@@ -433,19 +366,6 @@
                         punti.forEach(ponto => {
                             if (ponto.latitude && ponto.longitude) {
                                 if (ponto.type !== undefined && parseInt(ponto.type) !== 0) return;
-
-                                let timestampPunto = adesso; 
-                                if(ponto.acq_date) {
-                                    let stringaData = ponto.acq_date; 
-                                    let stringaOra = ponto.acq_time ? ponto.acq_time.padStart(4, '0') : "0000";
-                                    let isoData = `${stringaData}T${stringaOra.substring(0,2)}:${stringaOra.substring(2,4)}:00Z`;
-                                    timestampPunto = Date.parse(isoData);
-                                } else if (ponto.timestamp) {
-                                    timestampPunto = parseInt(ponto.timestamp);
-                                }
-
-                                const differenzaOre = (adesso - timestampPunto) / (1000 * 60 * 60);
-                                if (differenzaOre > oreFiltroSelezionate) return; 
 
                                 let inZonaIndustriale = false;
                                 for(let ind of blacklistIndustrie) {
@@ -460,11 +380,9 @@
                                 totaliNasa++; 
                                 let temp = ponto.brightness || ponto.bright_ti1 || ponto.bright_t31;
                                 let celsius = temp ? (parseFloat(temp) - 273.15).toFixed(1) + " °C" : 'N/D';
-                                let infoOra = ponto.acq_time ? `<br><b>Orario Passaggio:</b> ${ponto.acq_time.padStart(4, '0').replace(/(..)$/,':$1')} UTC` : '';
-
                                 L.circleMarker([parseFloat(ponto.latitude), parseFloat(ponto.longitude)], {
                                     radius: 6, fillColor: "#ff1a1a", color: "#ff8888", weight: 1.5, opacity: 0.9, fillOpacity: 0.75
-                                }).addTo(layerNasa).bindPopup(`<strong>Satellite NASA FIRMS</strong><br><b>Temp:</b> ${celsius}${infoOra}`);
+                                }).addTo(layerNasa).bindPopup(`<strong>Satellite NASA FIRMS</strong><br><b>Temp:</b> ${celsius}`);
                             }
                         });
                     }
@@ -473,35 +391,6 @@
                     totaliNasa = 0;
                     renderizzaContatori();
                 });
-        }
-
-        // --- ESTRAZIONE ASINCRONA COORDINATE EXIF DALLA FOTO ---
-        function estraiGpsDaFoto(file) {
-            return new Promise((resolve) => {
-                EXIF.getData(file, function() {
-                    const lat = EXIF.getTag(this, "GPSLatitude");
-                    const latRef = EXIF.getTag(this, "GPSLatitudeRef");
-                    const lon = EXIF.getTag(this, "GPSLongitude");
-                    const lonRef = EXIF.getTag(this, "GPSLongitudeRef");
-                    
-                    if (lat && lon && lat.length >= 3 && lon.length >= 3) {
-                        // Converte i formati EXIF razionali/frazionari o interi in Decimale
-                        let latD = (lat[0].numerator !== undefined ? lat[0].numerator / lat[0].denominator : lat[0]) +
-                                   (lat[1].numerator !== undefined ? lat[1].numerator / lat[1].denominator : lat[1]) / 60 +
-                                   (lat[2].numerator !== undefined ? lat[2].numerator / lat[2].denominator : lat[2]) / 3600;
-                        if (latRef === "S") latD = -latD;
-
-                        let lonD = (lon[0].numerator !== undefined ? lon[0].numerator / lon[0].denominator : lon[0]) +
-                                   (lon[1].numerator !== undefined ? lon[1].numerator / lon[1].denominator : lon[1]) / 60 +
-                                   (lon[2].numerator !== undefined ? lon[2].numerator / lon[2].denominator : lon[2]) / 3600;
-                        if (lonRef === "W") lonD = -lonD;
-
-                        resolve({ lat: latD, lon: lonD });
-                    } else {
-                        resolve(null); // Nessun dato GPS trovato nei metadati della foto
-                    }
-                });
-            });
         }
 
         function attivaAscoltoSegnalazioni() {
@@ -594,7 +483,8 @@
         }
 
         window.eliminaSegnalazione = async function(docId) {
-            const motivazione = prompt("🚨 RIMOZIONE INTERVENTO:\nInserisci la motivazione di chiusura del fronte fuoco:");
+            const motivazione = prompt("🚨 RIMOZIONE INTERVENTO:\nInserisci la motivazione di chiusura del fronte fuoco (es. Bonificato / Falso allarme):");
+            
             if (motivazione === null) return; 
             if (motivazione.trim() === "") {
                 alert("❌ Errore: È obbligatorio fornire una motivazione scritta per archiviare l'evento!");
@@ -607,7 +497,7 @@
                     responsabile: utenteLoggato.email,
                     ruolo: ruoloUtenteLoggato,
                     regione: regioneCompetenzaLoggata,
-                    provincia: provinciaCompetenzaLoggata || "Intera Region",
+                    provincia: provinciaCompetenzaLoggata || "Intera Regione",
                     motivazione: motivazione.trim(),
                     dataChiusura: new Date().toISOString()
                 });
@@ -653,7 +543,6 @@
                     if (userDoc.exists()) {
                         const datiUtente = userDoc.data();
                         
-                        // Controllo del campo unico "ruolo" (Risolto problema ruolo 1 e 2)
                         if (datiUtente.ruolo === "in_attesa") {
                             ruoloUtenteLoggato = "cittadino";
                             btn.innerText = "➕ Nuova Segnalazione (Verifica in corso)";
@@ -671,7 +560,7 @@
                             btn.innerText = `⭐ Coord. Prov. (${provinciaCompetenzaLoggata})`;
                             document.getElementById('titoloSegnala').innerText = "Inserimento Forzato Segnalazione";
                         } else {
-                            ruoloUtenteLoggato = datiUtente.ruolo || "cittadino";
+                            ruoloUtenteLoggato = datiUtente.ruolo;
                             btn.innerText = (ruoloUtenteLoggato === "volontario") ? "➕ Inserisci Segnalazione" : "➕ Nuova Segnalazione";
                             document.getElementById('titoloSegnala').innerText = "Segnala Avvistamento";
                         }
@@ -735,14 +624,18 @@
 
         window.recuperaPassword = async function() {
             const email = document.getElementById('email').value;
-            if (!email) { alert("⚠️ Inserisci la tua email prima di richiedere il ripristino."); return; }
+            if (!email) {
+                alert("⚠️ Inserisci la tua email prima di richiedere il ripristino.");
+                return;
+            }
             try {
                 await sendPasswordResetEmail(auth, email);
                 alert("✅ Email di recupero inviata! Controlla la posta.");
-            } catch (error) { alert("Errore: " + error.message); }
+            } catch (error) {
+                alert("Errore: " + error.message);
+            }
         };
 
-        // --- INVIO SEGNALAZIONE CON VERIFICA INTEGRATA METADATI EXIF ---
         window.inviaSegnalazione = async function() {
             const latG = parseFloat(document.getElementById('latGradi').value) || 0;
             const latP = parseFloat(document.getElementById('latPrimi').value) || 0;
@@ -760,26 +653,13 @@
 
             const btn = document.getElementById('btnInviaSegnalazione');
             btn.disabled = true;
-            btn.innerText = "Analisi metadati foto...";
+            btn.innerText = "Geolocalizzazione vettoriale...";
 
             const latD = latG + (latP/60) + (latS/3600);
             const lonD = lonG + (lonP/60) + (lonS/3600);
             const dms = `${latG}° ${latP}' ${latS.toFixed(1)}" N | ${lonG}° ${lonP}' ${lonS.toFixed(1)}" E`;
             
-            // 1. SISTEMA DI SICUREZZA DI LIVELLO 1: VERIFICA EXIF GEOTAG ANTI-TROLL
-            const gpsFoto = await estraiGpsDaFoto(fotoFile);
-            if (gpsFoto) {
-                const distanzaScattoSegnalazione = getDistanzaKm(latD, lonD, gpsFoto.lat, gpsFoto.lon);
-                // Soglia di tolleranza impostata a 2.0 km per gestire l'errore umano di posizionamento dell'utente
-                if (distanzaScattoSegnalazione > 2.0) {
-                    alert(`🚨 BLOCCO SICUREZZA ANTI-FALSO ALLARME:\nLe coordinate inserite non corrispondono alla posizione reale in cui è stata scattata la foto.\n\nScostamento rilevato: ${distanzaScattoSegnalazione.toFixed(2)} km.\nVerificare i dati o scattare una nuova foto.`);
-                    btn.disabled = false;
-                    btn.innerText = "Invia Segnalazione";
-                    return; 
-                }
-            }
-
-            // 2. SISTEMA DI SICUREZZA DI LIVELLO 2: FILTRO DI SICUREZZA BLACKLIST INDUSTRIALE
+            // FILTRO DI SICUREZZA BLACKLIST INTERNA ANCHE IN INSERIMENTO UTENTE
             let inZonaIndustriale = false;
             for(let ind of blacklistIndustrie) {
                 let dist = getDistanzaKm(latD, lonD, ind.lat, ind.lon);
@@ -796,7 +676,6 @@
                 return;
             }
 
-            btn.innerText = "Geolocalizzazione vettoriale...";
             let regioneCalcolata = "Non specificata";
             let provinciaCalcolata = "Non specificata";
             try {
