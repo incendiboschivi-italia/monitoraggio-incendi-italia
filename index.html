@@ -825,7 +825,7 @@
                 await sendPasswordResetEmail(auth, mail);
                 alert("Email di ripristino password inviata correttamente.");
             } catch(e) { alert("Errore: " + e.message); }
-        }
+            }
 
         window.disconnettiUtente = async function() {
             try {
@@ -833,7 +833,7 @@
                 alert("Profilo disconnesso.");
                 chiudiFinestra();
             } catch(e) { alert("Errore logout: " + e.message); }
-        }
+            }
 
         // Estrazione GPS
         async function estraiGpsDaFoto(file) {
