@@ -611,32 +611,38 @@
 
                     let colore = dati.stato === "In attesa di validazione operativa" ? "#e67e22" : "#fab005";
                     
-                    function compilaPopupHTML(regioneRilevata, provinciaRilevata, mostraTastoCancella) {
+                    function compilaPopupHTML(regioneRilevata, provinciaRilevata, mostraTastoCancella) { 
                         let img = dati.fotoBase64 ? `<img src="${dati.fotoBase64}" style="width:100%; max-height:150px; border-radius:4px; margin-top:8px; object-fit: cover;">` : '';
-                        let badge = dati.stato === "In attesa di validazione operativa" 
-                            ? `<div style="background:#fff9db; color:#e67e22; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #ffe066;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>`
-                            : `<div style="background:#ebfbee; color:#2b8a3e; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #8ce99a;">✅ VALIDATA</div>`;
-                        
-                        let infoDettagliata = `<span style="font-size:13px; line-height: 1.5;"><b>Regione:</b> ${regioneRilevata}<br><b>Provincia:</b> ${provinciaRilevata}<br>`;
+                        let badge = dati.stato === "In attesa di validazione operativa" ? `<div style="background:#fff9db; color:#e67e22; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #ffe066;">⚠️ IN ATTESA DI VALIDAZIONE OPERATIVA</div>` : `<div style="background:#ebfbee; color:#2b8a3e; padding:6px; border-radius:4px; font-weight:bold; font-size:11px; margin-bottom:10px; text-align:center; border: 1px solid #8ce99a;">✅ VALIDATA</div>`;
+                        let infoDettagliata = `<span style="font-size:13px; line-height: 1.5;"><b>Regione:</b> ${regioneRilevata}<br><b>Provincia:</b> ${provinciaRilevata}<br>`; 
                         if (dati.dms) infoDettagliata += `<b>Coordinate DMS:</b> ${dati.dms}<br>`;
-                        if (dati.combustibile) infoDettagliata += `<b>Vegetazione:</b> ${dati.combustibile}<br>`;
+                        if (dati.combustibile) infoDettagliata += `<b>Vegetazione:</b> ${dati.combustibile}<br>`; 
                         if (dati.latitudine && dati.longitudine) infoDettagliata += `<b>Lat/Lon:</b> ${dati.latitudine}, ${dati.longitudine}<br>`;
-                        if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`;
-                        infoDettagliata += `<b>Inviato da:</b> ${dati.utente || 'Utente registrato'}</span>`;
+                        if (dati.note) infoDettagliata += `<b>Note:</b> ${dati.note}<br>`; 
+                        infoDettagliata += `<b>Inviato da:</b> ${dati.utente || 'Utente registrato'}</span>`; 
+                        
+                        // Creazione sicura del payload per evitare conflitti con apici (DMS) e file enormi (Base64)
+                        let payloadSicuro = encodeURIComponent(JSON.stringify({
+                            lat: dati.latitudine,
+                            lon: dati.longitudine,
+                            dms: dati.dms,
+                            comb: dati.combustibile
+                        }));
+                        
+                        // Bottone Copia Stringa Operativa Dispatcher
+                        let btnDispatcher = `
+                            <button onclick="copiaStringaOperativa('${payloadSicuro}', '${encodeURIComponent(regioneRilevata)}', '${encodeURIComponent(provinciaRilevata)}')" style="background: #2b8a3e; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; margin-top: 10px; display:flex; justify-content:center; align-items:center; gap:6px;">
+                                📱 Copia Stringa Operativa
+                            </button>
+                        `;
 
                         let btnElimina = "";
-                        if (mostraTastoCancella) {
+                        if (mostraTastoCancella) { 
                             let etichettaCompetenza = (ruoloUtenteLoggato === "responsabile") ? `Regione ${regioneRilevata}` : `Prov. ${provinciaRilevata}`;
-                            btnElimina = `
-                                <hr style="margin: 12px 0; border: 0; border-top: 1px solid #dee2e6;">
-                                <button onclick="eliminaSegnalazione('${docId}')" style="background: #c92a2a; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;">
-                                    🗑 Chiudi / Archivia (${etichettaCompetenza})
-                                </button>
-                            `;
-                        }
-                        return `${badge}${infoDettagliata}${img}${btnElimina}`;
+                            btnElimina = ` <hr style="margin: 12px 0; border: 0; border-top: 1px solid #dee2e6;"> <button onclick="eliminaSegnalazione('${docId}')" style="background: #c92a2a; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px;"> 🗑 Chiudi / Archivia (${etichettaCompetenza}) </button> `;
+                        } 
+                        return `${badge}${infoDettagliata}${img}${btnDispatcher}${btnElimina}`; 
                     }
-
                     const marker = L.circleMarker([parseFloat(dati.latitudine), parseFloat(dati.longitudine)], {
                         radius: 7, fillColor: colore, color: "#fff", weight: 2, fillOpacity: 0.85
                     }).addTo(layerUtenti);
@@ -679,6 +685,36 @@
         }
 
         // --- SISTEMA DI CHIUSURA INCENDIO ED ARCHIVIAZIONE REGISTRO ---
+        // --- SISTEMA DISPATCHER WHATSAPP / TELEGRAM ---
+        window.copiaStringaOperativa = function(payloadCodificato, regioneCodificata, provinciaCodificata) {
+            try {
+                // Decodifica dei dati
+                const dati = JSON.parse(decodeURIComponent(payloadCodificato));
+                const regione = decodeURIComponent(regioneCodificata);
+                const provincia = decodeURIComponent(provinciaCodificata);
+                
+                // Generazione link rapido navigatore
+                const googleMapsLink = `https://www.google.com/maps/dir/?api=1&destination=${dati.lat},${dati.lon}`;
+                
+                // Formattazione del Dispaccio (WhatsApp accetta il grassetto tra asterischi)
+                const testoDispaccio = 
+`🚨 *ALLERTA INCENDIO BOSCHIVO* 🚨
+📍 *Provincia:* ${provincia} (${regione})
+🧭 *Coordinate:* ${dati.dms ? dati.dms : dati.lat + ', ' + dati.lon}
+🌲 *Vegetazione:* ${dati.comb || 'Non specificata'}
+📸 *Foto allegata:* Consultare la WebApp
+🗺️ *Link Navigatore (Google Maps):* ${googleMapsLink}`;
+
+                // Copia negli appunti del dispositivo
+                navigator.clipboard.writeText(testoDispaccio).then(() => {
+                    alert("✅ Dispaccio copiato! Pronto per essere incollato nelle chat delle squadre.");
+                }).catch(err => {
+                    alert("Errore nella copia automatica degli appunti: " + err);
+                });
+            } catch(e) {
+                console.error("Errore generazione stringa: ", e);
+            }
+        };
         window.eliminaSegnalazione = async function(docId) {
             try {
                 // Recupera i dati correnti prima di archiviare
