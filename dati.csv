@@ -1,1 +1,5 @@
 latitude,longitude,brightness,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_t31,frp,daynight
+37.17256,14.1058,311.56,3.57,1.77,2026-07-19,217,Aqua,MODIS,75,6.1NRT,294.99,56.86,N
+37.17575,14.10104,314.16,3.57,1.77,2026-07-19,217,Aqua,MODIS,84,6.1NRT,295.07,70.37,N
+37.85547,15.20371,308.72,3.08,1.67,2026-07-19,217,Aqua,MODIS,62,6.1NRT,297.69,31.43,N
+39.81845,16.14712,305.64,2.82,1.6,2026-07-19,217,Aqua,MODIS,34,6.1NRT,293.3,26.64,N
